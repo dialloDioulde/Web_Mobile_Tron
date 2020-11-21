@@ -27,5 +27,11 @@
       "ios",
       "browser"
     ]
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "expess": "0.0.1-security",
+    "mongoose": "^5.10.15",
+    "morgan": "^1.10.0"
   }
 }
