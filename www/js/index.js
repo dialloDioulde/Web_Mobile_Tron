@@ -27,3 +27,15 @@ function onDeviceReady() {
     console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
     document.getElementById('deviceready').classList.add('ready');
 }
+
+function send() {
+  const ws = new WebSocket('ws://localhost:8080');
+
+  ws.onopen = function() {
+    ws.send("Hello");
+  }
+
+  ws.onmessage = function(msg) {
+    console.log(msg);
+  }
+}
