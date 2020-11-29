@@ -29,16 +29,39 @@
             * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
                 * Enable inline JS: add 'unsafe-inline' to default-src
         -->
-        <meta http-equiv="Content-Security-Policy" content="connect-src *; default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+        <!-- <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' http://* 'unsafe-inline'; script-src 'self' http://* 'unsafe-inline' 'unsafe-eval'" /> -->
+        <!-- <meta http-equiv="Content-Security-Policy" content="connect-src *; default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;"> -->
+       
+        <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; script-src 'self' https://somedomain.com/ 'unsafe-inline' 'unsafe-eval';  media-src *"> -->
+        <meta http-equiv="Content-Security-Policy" content="default-src gap://ready file://* *; style-src 'self' http://* https://* 'unsafe-inline'; script-src 'self' http://* https://* 'unsafe-inline' 'unsafe-eval'">
+
         <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
         <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
         <meta name="color-scheme" content="light dark">
+        <meta src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js" integrity="sha512-Jr0UIR/Q8MUX+93zjDOhuDUKLqJZObtwpkLJQcR9qMaLgL0thet39IORuavUaZFkZ8a4ktrUsKPM9mf5LWMduA==" crossorigin="anonymous">
+
         <link rel="stylesheet" href="css/index.css">
-        <title>Hello World</title>
+        <title>Multiplayer Tron Game</title>
     </head>
     <body>
-        <div>
+        <section class="vh-100">
+            <div class="container h-100">
+
+                <div id="gameScreen" class="h-100">
+                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                        <canvas id="canvas"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        <!-- <canvas id="game-canvas"></canvas>
+            <script async src="/game.bundle.js"></script>
+            <div id="play-menu">
+                <input type="text" id="username-input" placeholder="Username" />
+                <button id="play-button">PLAY</button>
+            </div> -->
 <!--            <h1>Apache Cordova</h1>-->
 <!--            <div id="deviceready" class="blink">-->
 <!--                <p class="event listening">Connecting to Device</p>-->
@@ -47,55 +70,56 @@
 <!--            <h1>WebSocket</h1>-->
 <!--            <button type="button" name="button" onclick="send()">Send Message</button>-->
 
-            <h1>Real Time Messaging</h1>
-            <pre id="messages" style="height: 400px; overflow: scroll"></pre>
-            <input type="text" id="messageBox" placeholder="Type your message here" style="display: block; width: 100%; margin-bottom: 10px; padding: 10px;" />
-            <button id="send" title="Send Message!" style="width: 100%; height: 30px;">Send Message</button>
+<!--            <h1>Real Time Messaging</h1>-->
+<!--            <pre id="messages" style="height: 400px; overflow: scroll"></pre>-->
+<!--            <input type="text" id="messageBox" placeholder="Type your message here" style="display: block; width: 100%; margin-bottom: 10px; padding: 10px;" />-->
+<!--            <button id="send" title="Send Message!" style="width: 100%; height: 30px;">Send Message</button>-->
 
-            <script>
-              (function() {
-                const sendBtn = document.querySelector('#send');
-                const messages = document.querySelector('#messages');
-                const messageBox = document.querySelector('#messageBox');
+<!--            <script>-->
+<!--              (function() {-->
+<!--                const sendBtn = document.querySelector('#send');-->
+<!--                const messages = document.querySelector('#messages');-->
+<!--                const messageBox = document.querySelector('#messageBox');-->
 
-                let ws;
+<!--                let ws;-->
 
-                function showMessage(message) {
-                  messages.textContent += `\n\n${message}`;
-                  messages.scrollTop = messages.scrollHeight;
-                  messageBox.value = '';
-                }
+<!--                function showMessage(message) {-->
+<!--                  messages.textContent += `\n\n${message}`;-->
+<!--                  messages.scrollTop = messages.scrollHeight;-->
+<!--                  messageBox.value = '';-->
+<!--                }-->
 
-                function init() {
-                  if (ws) {
-                    ws.onerror = ws.onopen = ws.onclose = null;
-                    ws.close();
-                  }
+<!--                function init() {-->
+<!--                  if (ws) {-->
+<!--                    ws.onerror = ws.onopen = ws.onclose = null;-->
+<!--                    ws.close();-->
+<!--                  }-->
 
-                  ws = new WebSocket('ws://localhost:8080');
-                  ws.onopen = () => {
-                    console.log('Connection opened!');
-                  }
-                  ws.onmessage = ({ data }) => showMessage(data);
-                  ws.onclose = function() {
-                    ws = null;
-                  }
-                }
+<!--                  ws = new WebSocket('ws://localhost:8080');-->
+<!--                  ws.onopen = () => {-->
+<!--                    console.log('Connection opened!');-->
+<!--                  }-->
+<!--                  ws.onmessage = ({ data }) => showMessage(data);-->
+<!--                  ws.onclose = function() {-->
+<!--                    ws = null;-->
+<!--                  }-->
+<!--                }-->
 
-                sendBtn.onclick = function() {
-                  if (!ws) {
-                    showMessage("No WebSocket connection :(");
-                    return ;
-                  }
+<!--                sendBtn.onclick = function() {-->
+<!--                  if (!ws) {-->
+<!--                    showMessage("No WebSocket connection :(");-->
+<!--                    return ;-->
+<!--                  }-->
 
-                  ws.send(messageBox.value);
-                  showMessage(messageBox.value);
-                }
+<!--                  ws.send(messageBox.value);-->
+<!--                  showMessage(messageBox.value);-->
+<!--                }-->
 
-                init();
-              })();
-            </script>
-        </div>
+<!--                init();-->
+<!--              })();-->
+<!--            </script>-->
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"></script>
         <script src="cordova.js"></script>
         <script src="js/index.js"></script>
     </body>

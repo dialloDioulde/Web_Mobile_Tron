@@ -39,3 +39,102 @@
 //    console.log(msg);
 //  }
 //}
+/////////////////////////////////////////////////////////////
+
+// import { connect, play } from './networking';
+// import { startRendering, stopRendering } from './render';
+// import { startCapturingInput, stopCapturingInput } from './input';
+// import { downloadAssets } from './assets';
+// import { initState } from './state';
+// import { setLeaderboardHidden } from './leaderboard';
+
+// import './css/main.css';
+
+// const playMenu = document.getElementById('play-menu');
+// const playButton = document.getElementById('play-button');
+// const usernameInput = document.getElementById('username-input');
+
+// Promise.all([
+//   connect(),
+//   downloadAssets(),
+// ]).then(() => {
+//   playMenu.classList.remove('hidden');
+//   usernameInput.focus();
+//   playButton.onclick = () => {
+//     // Play!
+//     play(usernameInput.value);
+//     playMenu.classList.add('hidden');
+//     initState();
+//     startCapturingInput();
+//     startRendering();
+//     setLeaderboardHidden(false);
+//   };
+// });
+//////////////////////////////////////////////////////////////////
+
+const BG_COLOR = '#231f20';
+const SNAKE_COLOR = 'blue';
+const FOOD_COLOR = '#e66916';
+
+var socket = io('http://localhost:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+// var socket = io.connect('http://localhost:3000');
+socket.on('init', handleInit);
+socket.on('gameState', handleGameState);
+socket.on('gameOver', handleGameOver);
+
+const gameScreen = document.getElementById("gameScreen");
+let canvas, contex;
+
+function init(){
+  canvas = document.getElementById('canvas');
+  contex = canvas.getContext('2d');
+
+  canvas.width = canvas.height = 600;
+
+  contex.fillStyle = BG_COLOR;
+  contex.fillRect(0, 0, canvas.width, canvas.height);
+
+  document.addEventListener('keydown', keydown);
+}
+
+function keydown(event){
+  // console.log(event.keyCode);
+  socket.emit('keydown', event.keyCode);
+}
+
+init();
+
+function paintGame(state){
+  contex.fillStyle = BG_COLOR;
+  contex.fillRect(0, 0, canvas.width, canvas.height);
+
+  // const food = state.food;
+  const gridsize = state.gridsize;
+  const size = canvas.width / gridsize;
+
+  contex.fillStyle = FOOD_COLOR;
+  // contex.fillRect(food.x * size, food.y * size, size, size);
+
+  paintPlayer(state.player, size, SNAKE_COLOR);
+}
+
+function paintPlayer(playerState, size, color) {
+  const snake = playerState.snake;
+  contex.fillStyle = color;
+  for(let cell of snake){
+    contex.fillRect(cell.x * size, cell.y * size, size, size);
+  }
+}
+
+function handleInit(msg) {
+  console.log(msg); 
+}
+
+function handleGameState(gameState) {
+  gameState = JSON.parse(gameState);
+  requestAnimationFrame(() => paintGame(gameState));
+}
+
+function handleGameOver() {
+  alert("You Lose!");
+}
