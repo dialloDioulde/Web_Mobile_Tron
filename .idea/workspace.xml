@@ -20,12 +20,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ac0b6290-4807-417b-b64a-5fdff1a98796" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/www/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/www/js/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/js/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/js/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/js/server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/js/serverUser.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/js/server/serverUser.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/www/server/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/server/game.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/www/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/server/server.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,6 +80,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="WindowStateProjectService">
     <state x="816" y="159" key="RollbackChangesDialog" timestamp="1606135821027">

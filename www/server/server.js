@@ -88,14 +88,14 @@ io.on('connection', client => {
 function startGameInterval(client, state){
   const intervalId = setInterval(() => {
     const winner = gameLoop(state);
-    console.log('interval');
+    // console.log('interval');
     if( !winner ){
       client.emit('gameState', JSON.stringify(state));
     }else{
       client.emit('gameOver');
       clearInterval(intervalId);
     }
-  }, 1000 / FRAME_RATE); //number of miliseconds to wait from each frame
+  }, 1500 / FRAME_RATE); //number of miliseconds to wait from each frame
 }
 
 io.listen(3000);

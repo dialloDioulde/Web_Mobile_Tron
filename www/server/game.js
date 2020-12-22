@@ -49,10 +49,10 @@ function gameLoop(state){
     }
 
     // if(state.food.x === playerOne.pos.x && state.food.y === playerOne.pos.y){
-    playerOne.snake.push({...playerOne.pos});
+    // playerOne.snake.push({...playerOne.pos});
 
-    playerOne.pos.x += playerOne.velocity.x;
-    playerOne.pos.y += playerOne.velocity.y;
+    // playerOne.pos.x += playerOne.velocity.x;
+    // playerOne.pos.y += playerOne.velocity.y;
         // randomFood(state);
     // }
 
@@ -65,7 +65,7 @@ function gameLoop(state){
         }
 
         playerOne.snake.push({...playerOne.pos});
-        playerOne.snake.shift();
+        // playerOne.snake.shift();
     }
     return false;
 }
@@ -98,4 +98,4 @@ function getUpdatedVelocity(keyCode){
             return { x: 0, y: 1} ;
         }
     }
-}
+} 

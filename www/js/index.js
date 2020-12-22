@@ -74,10 +74,24 @@
 
 const BG_COLOR = '#231f20';
 const SNAKE_COLOR = 'blue';
-const FOOD_COLOR = '#e66916';
+//const FOOD_COLOR = '#e66916';
 
-var socket = io('http://localhost:3000', {transports: ['websocket', 'polling', 'flashsocket']});
-// var socket = io.connect('http://localhost:3000');
+let isSimulator;
+
+document.addEventListener("deviceready", onDeviceReady, false);
+function onDeviceReady() {
+    console.log("device: ");
+    isSimulator = device.isVirtual;
+    // console.log(device.isVirtual);
+    console.log(isSimulator);
+}
+
+if(isSimulator){
+  var socket = io('http://10.0.2.2:5584', {transports: ['websocket', 'polling', 'flashsocket']});
+}else{
+  var socket = io('http://localhost:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+}
+
 socket.on('init', handleInit);
 socket.on('gameState', handleGameState);
 socket.on('gameOver', handleGameOver);
@@ -112,7 +126,7 @@ function paintGame(state){
   const gridsize = state.gridsize;
   const size = canvas.width / gridsize;
 
-  contex.fillStyle = FOOD_COLOR;
+//  contex.fillStyle = FOOD_COLOR;
   // contex.fillRect(food.x * size, food.y * size, size, size);
 
   paintPlayer(state.player, size, SNAKE_COLOR);
@@ -121,6 +135,7 @@ function paintGame(state){
 function paintPlayer(playerState, size, color) {
   const snake = playerState.snake;
   contex.fillStyle = color;
+
   for(let cell of snake){
     contex.fillRect(cell.x * size, cell.y * size, size, size);
   }
