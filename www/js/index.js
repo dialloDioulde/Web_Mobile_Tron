@@ -76,21 +76,21 @@ const BG_COLOR = '#231f20';
 const SNAKE_COLOR = 'blue';
 //const FOOD_COLOR = '#e66916';
 
-let isSimulator;
+//let isSimulator;
 
-document.addEventListener("deviceready", onDeviceReady, false);
-function onDeviceReady() {
-    console.log("device: ");
-    isSimulator = device.isVirtual;
-    // console.log(device.isVirtual);
-    console.log(isSimulator);
-}
+//document.addEventListener("deviceready", onDeviceReady, false);
+//function onDeviceReady() {
+//    console.log("device: ");
+//    isSimulator = device.isVirtual;
+//    // console.log(device.isVirtual);
+//    console.log(isSimulator);
+//}
 
-if(isSimulator){
-  var socket = io('http://10.0.2.2:5584', {transports: ['websocket', 'polling', 'flashsocket']});
-}else{
-  var socket = io('http://localhost:3000', {transports: ['websocket', 'polling', 'flashsocket']});
-}
+//if(isSimulator){
+var socket = io.connect('http://10.0.2.2:3030/');
+//}else{
+//  var socket = io('http://192.168.0.29:3030', {transports: ['websocket', 'polling', 'flashsocket']});
+//}
 
 socket.on('init', handleInit);
 socket.on('gameState', handleGameState);

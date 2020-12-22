@@ -98,7 +98,18 @@ function startGameInterval(client, state){
   }, 1500 / FRAME_RATE); //number of miliseconds to wait from each frame
 }
 
-io.listen(3000);
+
+io.listen(3030);
+
+var os = require('os');
+
+//var networkInterfaces = os.networkInterfaces();
+//var address = networkInterfaces['venet0:0'][0].address;
+//console.log(address);
+
+var ip = require("ip");
+console.log(ip.address());
+
 console.log("the server is running...");
 
 /////////////////////////////////////////////////////
