@@ -29,23 +29,54 @@
             * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
                 * Enable inline JS: add 'unsafe-inline' to default-src
         -->
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+        <meta http-equiv="Content-Security-Policy" content="default-src gap://ready file://* *; style-src 'self' http://* https://* 'unsafe-inline'; script-src 'self' http://* https://* 'unsafe-inline' 'unsafe-eval'">
+
         <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
         <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
         <meta name="color-scheme" content="light dark">
+        <meta src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js" integrity="sha512-Jr0UIR/Q8MUX+93zjDOhuDUKLqJZObtwpkLJQcR9qMaLgL0thet39IORuavUaZFkZ8a4ktrUsKPM9mf5LWMduA==" crossorigin="anonymous">
+
         <link rel="stylesheet" href="css/index.css">
-        <title>Hello World</title>
+
+        <title>Multiplayer Tron Game</title>
     </head>
     <body>
-        <div class="app">
-            <h1>Apache Cordova</h1>
-            <div id="deviceready" class="blink">
-                <p class="event listening">Connecting to Device</p>
-                <p class="event received">Device is Ready</p>
-            </div>
+      <!--<section class="vh-100">
+          <div class="container h-100">
+
+              <div id="gameScreen" class="h-100">
+                  <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                      <canvas id="canvas"></canvas>
+                  </div>
+              </div>
+
+          </div>
+      </section>-->
+      <div class="overlay">
+        <div class="container">
+          <img src="img/logo.png">
+
+          <div class="slideshow-container">
+            <div id="motoSelector"></div>
+
+            <!-- Next and previous buttons -->
+            <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+            <a class="next" onclick="plusSlides(1)">&#10095;</a>
+          </div>
+          <br>
+          <!-- The dots/circles -->
+          <div id="dots" style="text-align:center"></div>
+
+          <form id="formLogin" name="login" onsubmit="return false;">
+            <input id="pseudoLogin" type="text" name="pseudo" pattern="[a-zA-Z][a-zA-Z0-9]+" placeholder="Pseudo" required />
+            <input id="loginBTN" name="submit" type="submit" value="JOUER" />
+          </form>
         </div>
-        <script src="cordova.js"></script>
-        <script src="js/index.js"></script>
+      </div>
+
     </body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.3/socket.io.js"></script>
+    <script src="cordova.js"></script>
+    <script src="js/index.js"></script>
 </html>
