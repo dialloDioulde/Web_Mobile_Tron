@@ -28,23 +28,37 @@ function onDeviceReady() {
     document.getElementById('deviceready').classList.add('ready');
 }*/
 
-const BG_COLOR = '#231f20';
-const SNAKE_COLOR = 'blue';
-//const FOOD_COLOR = '#e66916';
-var joueur = {id: null, pseudo: "", moto: ""};
+/** Variables globales **/
+const CANVAS_SIZE = Math.min(innerWidth, innerHeight);
+
+var client;
+var joueur = {id: null, pseudo: "", moto: "", score: 0, win: 0, lose: 0};
 var motos_available = [];
-
-var client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
-/*client.on('init', handleInit);
-client.on('gameState', handleGameState);
-client.on('gameOver', handleGameOver);*/
-client.on('welcome', function(socketId) {
-  joueur.id = socketId;
-});
-client.on('motoAvailable', createMotoSelector);
-
 var slideIndex;
 
+/***************************************
+*       CONNEXION avec le SERVEUR      *
+***************************************/
+window.onload = function() {
+  if (localStorage.pseudo) {
+    joueur.pseudo = localStorage.pseudo;
+    document.login.children.pseudo.value = joueur.pseudo;
+  }
+  client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+
+  client.on('welcome', function(socketId) {
+    joueur.id = socketId;
+  });
+
+  client.on('motoAvailable', createMotoSelector);
+  client.on('init', launchGame);
+}
+
+/*******************************
+*             LOGIN            *
+*******************************/
+
+// - Ajoute dans le document HTML les éléments des motos disponibles
 function createMotoSelector(motos) {
   motos_available = motos
   let divSelector = document.querySelector('#motoSelector');
@@ -86,16 +100,15 @@ function createMotoSelector(motos) {
 
 }
 
-// Next/previous controls
+// - Permet la navigation entre les différentes motos disponibles
 function plusSlides(n) {
   showSlides(slideIndex += n);
 }
-
-// Thumbnail image controls
+// - Permet l'affichage de la moto choisi
 function currentSlide(n) {
   showSlides(slideIndex = n);
 }
-
+// - Affiche la moto courante
 function showSlides(n) {
   var i;
   var slides = document.getElementsByClassName("mySlides");
@@ -112,29 +125,124 @@ function showSlides(n) {
   dots[slideIndex-1].className += " active";
 }
 
-
+// - Validation du formulaire et lancement du jeu si succès
 document.querySelector("#formLogin").addEventListener('submit', function(e) {
   event.preventDefault();
   joueur.pseudo = document.login.children.pseudo.value;
   joueur.moto = motos_available[slideIndex-1];
   console.log(document.login.children.pseudo.value);
   console.log(slideIndex-1);
-  client.emit('login', joueur);
+  client.emit('login', joueur, function(res) {
+    console.log(res);
+    if (res == "pseudo-unavailable") {
+      alert("Ce pseudo est déjà utilisé !");
+    }
+    else {
+      localStorage.pseudo = joueur.pseudo;
+      initGame();
+    }
+  });
 });
 
-/*const gameScreen = document.getElementById("gameScreen");
-let canvas, contex;
+/************************************
+*           INITIALISATION          *
+************************************/
+// - Affiche l'air de jeu
+function initGame() {
+  document.querySelector('.overlay').style.display = "none";
+  client.off('welcome');
+  client.off('motoAvailable');
+  createPlayground();
 
-function init(){
-  canvas = document.getElementById('canvas');
-  contex = canvas.getContext('2d');
+  var boxDialog = document.createElement('dialog');
+  boxDialog.id = 'info';
+  var text = document.createTextNode("");
+  boxDialog.setAttribute("open", "open");
+  boxDialog.appendChild(text);
+  document.querySelector('#game').appendChild(boxDialog);
+  client.emit('ready', function(res) {
+    if (res == "waitOther") {
+      document.querySelector('#info').innerHTML = "En attente d'autres joueur";
+    }
+    if (res == "waitPlay") {
+      document.querySelector('#info').innerHTML = "En attente de la fin de partie";
+    }
+  });
+}
 
-  canvas.width = canvas.height = 600;
+// - Lance le compte à rebours et démarre la partie
+function launchGame(){
+  var timer = document.querySelector('#info');
+  timer.innerHTML = "5";
+  timerRun();
+  setTimeout(play(), 1000);
+  console.log("launch game");
+}
 
-  contex.fillStyle = BG_COLOR;
-  contex.fillRect(0, 0, canvas.width, canvas.height);
+// - Éxecute le compte à rebours
+function timerRun() {
+  setTimeout(function(){
+    var t = document.querySelector('#info').textContent;
+    console.log(t);
+    if (parseInt(t) > 0) {
+      document.querySelector('#info').innerHTML = t-1;
+      timerRun();
+    }
+    else {
+      document.querySelector('#info').innerHTML = "GO !";
+      //setTimeout(launchGame(), 1000);
+      //console.log("launch game");
+    }
+  }, 1000);
+}
 
+// - Créer l'aire de jeu avec les bonnes dimensions
+function createPlayground() {
+  document.querySelector('#game').style.display = "block";
+
+  var playground = document.querySelector('#playground');
+  if(CANVAS_SIZE == innerHeight){
+    playground.style.width = (CANVAS_SIZE - 20)+"px";
+    playground.style.height = (CANVAS_SIZE - 20)+"px";
+  }
+  else {
+    playground.style.width = CANVAS_SIZE+"px";
+    playground.style.height = CANVAS_SIZE+"px";
+  }
+  playground.style.overflow = "hidden";
+
+  var canvas = document.querySelector('#tronCanvas');
+  canvas.width = CANVAS_SIZE;
+  canvas.height = CANVAS_SIZE;
+  var ctx = canvas.getContext("2d");
+
+}
+
+/*******************************
+*              JEU             *
+*******************************/
+
+function play() {
+  document.querySelector('#info').style.display = "none";
   document.addEventListener('keydown', keydown);
+}
+
+
+function paintPlayer(playerState) {
+  const snake = playerState.snake;
+  contex.fillStyle = color;
+
+  for(let cell of snake){
+    contex.fillRect(cell.x * size, cell.y * size, size, size);
+  }
+}
+function handleGameState(gameState) {
+  gameState = JSON.parse(gameState);
+  requestAnimationFrame(() => paintGame(gameState));
+}
+
+function handleGameOver() {
+  alert("You Lose!");
 }
 
 function keydown(event){
@@ -157,41 +265,3 @@ function keydown(event){
       }
   }
 }
-
-init();
-
-function paintGame(state){
-  contex.fillStyle = BG_COLOR;
-  contex.fillRect(0, 0, canvas.width, canvas.height);
-
-  // const food = state.food;
-  const gridsize = state.gridsize;
-  const size = canvas.width / gridsize;
-
-//  contex.fillStyle = FOOD_COLOR;
-  // contex.fillRect(food.x * size, food.y * size, size, size);
-
-  paintPlayer(state.player, size, SNAKE_COLOR);
-}
-
-function paintPlayer(playerState, size, color) {
-  const snake = playerState.snake;
-  contex.fillStyle = color;
-
-  for(let cell of snake){
-    contex.fillRect(cell.x * size, cell.y * size, size, size);
-  }
-}
-
-function handleInit(msg) {
-  console.log(msg);
-}
-
-function handleGameState(gameState) {
-  gameState = JSON.parse(gameState);
-  requestAnimationFrame(() => paintGame(gameState));
-}
-
-function handleGameOver() {
-  alert("You Lose!");
-}*/

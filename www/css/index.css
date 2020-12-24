@@ -173,3 +173,31 @@
  @media only screen and (max-width: 300px) {
    .prev, .next,.text {font-size: 11px}
  }
+
+ /*********************************
+  *          PLAYGROUND           *
+  *********************************/
+main {
+  display: none;
+}
+
+#tronCanvas{
+    position: absolute;
+    background: #313335;
+}
+
+#playground{
+    position: relative;
+    margin: 10px auto;
+    border: 2px solid #026897;
+}
+
+#info {
+  position: absolute;
+  top: 35%;
+  z-index: 10;
+  background: none;
+  border: none;
+  font-size: 3.5em;
+  color: #026897;
+}
