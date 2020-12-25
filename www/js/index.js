@@ -29,12 +29,30 @@ function onDeviceReady() {
 }*/
 
 /** Variables globales **/
-const CANVAS_SIZE = Math.min(innerWidth, innerHeight);
+const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
+const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
+const MOTO_SIZE = {w: 7, l: 23};
 
 var client;
-var joueur = {id: null, pseudo: "", moto: "", score: 0, win: 0, lose: 0};
+var joueur = {
+  id: null,
+  pseudo: "",
+  moto: 0,
+  color: "",
+  pos: null,
+  dir: "",
+  path: [],
+  status: "ready",
+  score: 0,
+  win: 0,
+  lose: 0
+};
 var motos_available = [];
-var slideIndex;
+
+var slide_index;
+var timerId;
+var canvas_ctx;
+
 
 /***************************************
 *       CONNEXION avec le SERVEUR      *
@@ -44,14 +62,13 @@ window.onload = function() {
     joueur.pseudo = localStorage.pseudo;
     document.login.children.pseudo.value = joueur.pseudo;
   }
+
   client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
 
-  client.on('welcome', function(socketId) {
+  client.on('welcome', function(socketId, listMoto) {
     joueur.id = socketId;
+    createMotoSelector(listMoto);
   });
-
-  client.on('motoAvailable', createMotoSelector);
-  client.on('init', launchGame);
 }
 
 /*******************************
@@ -88,8 +105,8 @@ function createMotoSelector(motos) {
                                  "</div>";
       }
     }
-    slideIndex = 1;
-    showSlides(slideIndex);
+    slide_index = 1;
+    showSlides(slide_index);
   }
   else {
     divSelector.innerHTML = "<div style='text-align: center;'>"+
@@ -102,44 +119,61 @@ function createMotoSelector(motos) {
 
 // - Permet la navigation entre les différentes motos disponibles
 function plusSlides(n) {
-  showSlides(slideIndex += n);
+  showSlides(slide_index += n);
 }
 // - Permet l'affichage de la moto choisi
 function currentSlide(n) {
-  showSlides(slideIndex = n);
+  showSlides(slide_index = n);
 }
 // - Affiche la moto courante
 function showSlides(n) {
   var i;
   var slides = document.getElementsByClassName("mySlides");
   var dots = document.getElementsByClassName("dot");
-  if (n > slides.length) {slideIndex = 1}
-  if (n < 1) {slideIndex = slides.length}
+  if (n > slides.length) {slide_index = 1}
+  if (n < 1) {slide_index = slides.length}
   for (i = 0; i < slides.length; i++) {
       slides[i].style.display = "none";
   }
   for (i = 0; i < dots.length; i++) {
       dots[i].className = dots[i].className.replace(" active", "");
   }
-  slides[slideIndex-1].style.display = "block";
-  dots[slideIndex-1].className += " active";
+  slides[slide_index-1].style.display = "block";
+  dots[slide_index-1].className += " active";
 }
 
 // - Validation du formulaire et lancement du jeu si succès
 document.querySelector("#formLogin").addEventListener('submit', function(e) {
+  console.log("login");
   event.preventDefault();
   joueur.pseudo = document.login.children.pseudo.value;
-  joueur.moto = motos_available[slideIndex-1];
   console.log(document.login.children.pseudo.value);
-  console.log(slideIndex-1);
+
+  joueur.moto = motos_available[slide_index-1];
+  console.log(motos_available[slide_index-1]);
+
+  if (joueur.moto == "bleu") {
+    joueur.color = COLORS.bleu;
+  }
+  else if (joueur.moto == "orange") {
+    joueur.color = COLORS.orange;
+  }
+  else if (joueur.moto == "rouge") {
+    joueur.color = COLORS.rouge;
+  }
+  else {
+    joueur.color = COLORS.vert;
+  }
+
   client.emit('login', joueur, function(res) {
-    console.log(res);
     if (res == "pseudo-unavailable") {
+      console.log("echec");
       alert("Ce pseudo est déjà utilisé !");
     }
     else {
+      console.log("valide");
       localStorage.pseudo = joueur.pseudo;
-      initGame();
+      initGame(res);
     }
   });
 });
@@ -148,11 +182,14 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
 *           INITIALISATION          *
 ************************************/
 // - Affiche l'air de jeu
-function initGame() {
+function initGame(data) {
+  console.log("initGame");
   document.querySelector('.overlay').style.display = "none";
   client.off('welcome');
   client.off('motoAvailable');
   createPlayground();
+  client.on('newPlayer', addMoto);
+  //addMoto(data);
 
   var boxDialog = document.createElement('dialog');
   boxDialog.id = 'info';
@@ -160,40 +197,16 @@ function initGame() {
   boxDialog.setAttribute("open", "open");
   boxDialog.appendChild(text);
   document.querySelector('#game').appendChild(boxDialog);
-  client.emit('ready', function(res) {
-    if (res == "waitOther") {
+  client.emit('ready', function(str) {
+    if (str == "waitOther") {
       document.querySelector('#info').innerHTML = "En attente d'autres joueur";
     }
-    if (res == "waitPlay") {
+    if (str == "waitPlay") {
       document.querySelector('#info').innerHTML = "En attente de la fin de partie";
     }
   });
-}
 
-// - Lance le compte à rebours et démarre la partie
-function launchGame(){
-  var timer = document.querySelector('#info');
-  timer.innerHTML = "5";
-  timerRun();
-  setTimeout(play(), 1000);
-  console.log("launch game");
-}
-
-// - Éxecute le compte à rebours
-function timerRun() {
-  setTimeout(function(){
-    var t = document.querySelector('#info').textContent;
-    console.log(t);
-    if (parseInt(t) > 0) {
-      document.querySelector('#info').innerHTML = t-1;
-      timerRun();
-    }
-    else {
-      document.querySelector('#info').innerHTML = "GO !";
-      //setTimeout(launchGame(), 1000);
-      //console.log("launch game");
-    }
-  }, 1000);
+  client.on('init', launchGame);
 }
 
 // - Créer l'aire de jeu avec les bonnes dimensions
@@ -202,8 +215,8 @@ function createPlayground() {
 
   var playground = document.querySelector('#playground');
   if(CANVAS_SIZE == innerHeight){
-    playground.style.width = (CANVAS_SIZE - 20)+"px";
-    playground.style.height = (CANVAS_SIZE - 20)+"px";
+    playground.style.width = CANVAS_SIZE+"px";
+    playground.style.height = CANVAS_SIZE+"px";
   }
   else {
     playground.style.width = CANVAS_SIZE+"px";
@@ -214,8 +227,81 @@ function createPlayground() {
   var canvas = document.querySelector('#tronCanvas');
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
-  var ctx = canvas.getContext("2d");
+  canvas_ctx = canvas.getContext("2d");
+  console.log(canvas_ctx);
+}
 
+function addMoto(data) {
+  for (var i = 0; i < data.players.length; i++) {
+    if (data.players[i].status != "waiting") {
+      var pos = scalePos(data.players[i], data.moto_size, data.size);
+      console.log(pos);
+      canvas_ctx.fillStyle = data.players[i].color;
+      if (data.players[i].dir == "bottom" || data.players[i].dir == "top") {
+        canvas_ctx.fillRect(pos.x, pos.y, data.moto_size.w, data.moto_size.l);
+      }
+      if (data.players[i].dir == "left" || data.players[i].dir == "right") {
+        canvas_ctx.fillRect(pos.x, pos.y, data.moto_size.l, data.moto_size.w);
+      }
+    }
+  }
+}
+
+function scalePos(moto, size, scale) {
+  var x, y;
+  if (moto.dir == "bottom" || moto.dir == "top") {
+    x = ((moto.pos.x / scale.width) * CANVAS_SIZE) - (size.w/2);
+    y = ((moto.pos.y / scale.height) * CANVAS_SIZE);
+  }
+  if (moto.dir == "right" || moto.dir == "left") {
+    x = ((moto.pos.x / scale.width) * CANVAS_SIZE);
+    y = ((moto.pos.y / scale.height) * CANVAS_SIZE) - (size.w/2);
+  }
+  return new Position(x,y);
+}
+
+function displayPlayersList(joueurs) {
+
+}
+
+function addPlayersGame(joueurs) {
+
+}
+// - Lance le compte à rebours et démarre la partie
+function launchGame(joueurs){
+  displayPlayersList(joueurs);
+  addPlayersGame(joueurs);
+  var timer = document.querySelector('#info');
+  timer.innerHTML = "5";
+  //timerRun();
+  timerId = setInterval(timerRun, 1000);
+}
+
+// - Éxecute le compte à rebours
+function timerRun() {
+  /*setTimeout(function(){
+    var t = document.querySelector('#info').textContent;
+    console.log(t);
+    if (parseInt(t) > 0) {
+      document.querySelector('#info').innerHTML = t-1;
+      timerRun();
+    }
+    else {
+      document.querySelector('#info').innerHTML = "GO !";
+      setTimeout(play(), 1000);
+      //console.log("launch game");
+    }
+  }, 1000);*/
+  counter = parseInt(document.querySelector('#info').textContent);
+  counter--;
+  if (counter == 0) {
+    clearInterval(timerId);
+    document.querySelector('#info').innerHTML = "GO !";
+    setTimeout(play, 1000);
+  }
+  else {
+    document.querySelector('#info').innerHTML = counter;
+  }
 }
 
 /*******************************
@@ -223,8 +309,9 @@ function createPlayground() {
 *******************************/
 
 function play() {
+  console.log("play");
   document.querySelector('#info').style.display = "none";
-  document.addEventListener('keydown', keydown);
+  //document.addEventListener('keydown', keydown);
 }
 
 
@@ -263,5 +350,27 @@ function keydown(event){
       case 40: {//up
           newPos = { x: 0, y: 1} ;
       }
+  }
+}
+
+// - Classe qui représente les positions des objets du jeu à l'écran
+class Position {
+  // - Constructeur
+  constructor(x=0,y=0){
+    if(this == window || this == undefined){              // si this est égale à l'objet global window ou si this est undefined
+      return new Position(x,y);                           // - on retourne une nouvelle instance de Position avec x=0 et y=0
+    }
+    else {                                                // sinon
+      this.x = x;                                         // - on initialise un attribut x avec la valeur du paramètre x
+      this.y = y;                                         // - on initialise un attribut y avec la valeur du paramètre y
+      return this;                                        // - on retourne la position crée avec ses attributs x,y
+    }
+  }
+
+  // - Ajoute une position à this
+  add(pos=Position()) {
+    this.x = this.x + pos.x;                              // on ajoute la coordonnée x à l'attribut x de notre position
+    this.y = this.y + pos.y;                              // on ajoute la coordonnée y à l'attribut y de notre position
+    return this;                                          // on retourne la nouvelle position
   }
 }

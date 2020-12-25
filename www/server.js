@@ -2,9 +2,22 @@ const io = require('socket.io')();
 const { createGameState, gameLoop, getUpdatedVelocity } = require('./game');
 const { FRAME_RATE } = require('./constants');
 
-var moto_Availables = ["bleu", "orange", "rouge", "vert"];
-var joueurs = [];
-var playing = false;
+var game = {
+  size: {width: 100, height: 100},
+  players: [],
+  motos_available: ["bleu", "orange", "rouge", "vert"],
+  moto_size: {w: 7, l: 23},
+  step: 2,
+  path_length: 100,
+  initial_positions: [
+    {x: 50, y: 2},
+    {x: 50, y: 94.5},
+    {x: 2, y: 50},
+    {x: 94.5, y: 50}
+  ],
+  initial_directions: ["bottom", "top", "right", "left"],
+  playing: false
+};
 
 io.on('connection', socket => {
   /*const state = createGameState();
@@ -27,9 +40,8 @@ io.on('connection', socket => {
 
   }
   startGameInterval(client, state);*/
-  console.log(socket.id);
-  socket.emit('welcome', socket.id);
-  socket.emit('motoAvailable', moto_Availables);
+  console.log("New connection:", socket.id);
+  socket.emit('welcome', socket.id, game.motos_available);
 
   socket.on('login', newPlayer);
   socket.on('ready', init);
@@ -38,41 +50,53 @@ io.on('connection', socket => {
     console.log("disconnect");
     console.log(socket.id);
     var id_j;
-    for (var i = 0; i < joueurs.length; i++) {
-      if (joueurs[i].id == socket.id) {
-        moto_Availables.push(joueurs[i].moto);
-        moto_Availables.sort();
+    for (var i = 0; i < game.players.length; i++) {
+      if (game.players[i].id == socket.id) {
+        game.motos_available.push(game.players[i].moto);
+        game.motos_available.sort();
         id_j = i;
       }
     }
-    joueurs.splice(id_j, 1);
+    game.players.splice(id_j, 1);
   });
 });
 
 function newPlayer(joueur, callback) {
-  for (var i = 0; i < joueurs.length; i++) {
-    if (joueurs[i].pseudo == joueur.pseudo) {
+  for (var i = 0; i < game.players.length; i++) {
+    if (game.players[i].pseudo == joueur.pseudo) {
       console.log("pseudo-unavailable");
       return callback("pseudo-unavailable");
     }
   }
 
-  joueurs.push(joueur);
-  console.log(joueurs);
-  moto_Availables.splice(moto_Availables.indexOf(joueur.moto), 1);
-  return callback("player-added");
+  joueur.pos = game.initial_positions[game.players.length];
+  joueur.dir = game.initial_directions[game.players.length];
+  if (game.playing) {
+    joueur.status = "waiting";
+  }
+  game.players.push(joueur);
+
+  game.motos_available.splice(game.motos_available.indexOf(joueur.moto), 1);
+  console.log(game);
+  callback(game);
+  io.sockets.emit('newPlayer', game);
+}
+
+function initPosPlayer(joueur, indice){
+
 }
 
 function init(callback) {
-  if (joueurs.length <= 1) {
+  if (game.players.length <= 1) {
     return callback("waitOther");
   }
-  if (playing) {
+  if (game.playing) {
     return callback("waitPlay")
   }
-  if (joueurs.length > 1 && playing == false) {
-    io.sockets.emit('init');
-    playing = true;
+  if (game.players.length > 1 && game.playing == false) {
+    io.sockets.emit('init', game.players);
+    game.playing = true;
+    console.log(game.players);
   }
 }
 
