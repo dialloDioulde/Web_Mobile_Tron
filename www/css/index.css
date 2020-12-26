@@ -16,22 +16,188 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-* {
-    -webkit-tap-highlight-color: rgba(0,0,0,0); /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+ html, body, div, h1, h2, h3, h4, h5, h6, form, label,
+ legend, caption, aside, details, figcaption, figure, footer,header,
+ menu, nav, section, summary {
+     margin: 0;
+     padding: 0;
+     border: 0;
+     outline: 0;
+     font-weight: inherit;
+     font-size: 16px;
+     font-style: inherit;
+     font-family: 'Roboto', sans-serif;
+     vertical-align: baseline;
+     text-decoration: none;
+ }
+ html, body{
+     font-family: 'Roboto', sans-serif;
+     overflow: hidden;
+ }
+ body{
+     background-color: rgba(0, 0, 0, 0.8);
+ }
+
+ /****************************
+  *          LOGIN           *
+  ***************************/
+ .overlay{
+     position: fixed;
+     display: flex;
+     flex-flow:column nowrap;
+     justify-content:center;
+     overflow: hidden;
+     width: 100%;
+     height: 100%;
+     top: 0;
+     left: 0;
+     /*background-color: rgba(0, 0, 0, 0.8);*/
+ }
+ .overlay>.container{
+     display: flex;
+     flex-flow:column nowrap;
+     justify-content:center;
+ }
+ .overlay>*, .overlay>.container>*{
+     align-self:center;
+ }
+ .overlay>.container>*{
+     width: 400px;
+ }
+ #formLogin{
+     margin-top: 20px;
+ }
+ #formLogin .inputForm{
+     background-color: #ffffff;
+ }
+ #formLogin input{
+     display: block;
+     width: 100%;
+     border: none;
+     box-shadow: none;
+     padding-top: 12px;
+     padding-bottom: 12px;
+     font-size: 18px;
+     text-align: center;
+     font-family: 'Roboto', sans-serif;
+     font-weight: 300;
+ }
+ #formLogin input[type='submit']{
+     background-color: #000066;
+     color: #ffffff;
+     cursor: pointer;
+ }
+
+ #formLogin > h1{
+     font-weight:300;
+     margin-bottom:10px;
+     text-align: center;
+     color: #ffffff;
+     font-size: 1.5em;
+ }
+
+ * {box-sizing:border-box}
+
+ .mySlides {display: none}
+ .mySlides img {vertical-align: middle;}
+
+ /* Slideshow container */
+ .slideshow-container {
+   max-width: 1000px;
+   position: relative;
+   margin: auto;
+ }
+
+ /* Next & previous buttons */
+ .prev, .next {
+   cursor: pointer;
+   position: absolute;
+   top: 50%;
+   width: auto;
+   padding: 16px;
+   margin-top: -22px;
+   color: white;
+   font-weight: bold;
+   font-size: 18px;
+   transition: 0.6s ease;
+   border-radius: 0 3px 3px 0;
+   user-select: none;
+ }
+
+ /* Position the "next button" to the right */
+ .next {
+   right: 0;
+   border-radius: 3px 0 0 3px;
+ }
+
+ /* On hover, add a black background color with a little bit see-through */
+ .prev:hover, .next:hover {
+   background-color: rgba(0,0,0,0.8);
+ }
+
+ /* The dots/bullets/indicators */
+ .dot {
+   cursor: pointer;
+   height: 15px;
+   width: 15px;
+   margin: 0 2px;
+   background-color: #bbb;
+   border-radius: 50%;
+   display: inline-block;
+   transition: background-color 0.6s ease;
+ }
+
+ .active, .dot:hover {
+   background-color: #717171;
+ }
+
+ /* Fading animation */
+ .fade {
+   -webkit-animation-name: fade;
+   -webkit-animation-duration: 1.5s;
+   animation-name: fade;
+   animation-duration: 1.5s;
+ }
+
+ @-webkit-keyframes fade {
+   from {opacity: .4}
+   to {opacity: 1}
+ }
+
+ @keyframes fade {
+   from {opacity: .4}
+   to {opacity: 1}
+ }
+
+ /* On smaller screens, decrease text size */
+ @media only screen and (max-width: 300px) {
+   .prev, .next,.text {font-size: 11px}
+ }
+
+ /*********************************
+  *          PLAYGROUND           *
+  *********************************/
+main {
+  display: none;
 }
 
-body {
-    -webkit-touch-callout: none;                /* prevent callout to copy image, etc when tap to hold */
-    -webkit-text-size-adjust: none;             /* prevent webkit from resizing text to fit */
-    -webkit-user-select: none;                  /* prevent copy paste, to allow, change 'none' to 'text' */
-    background-color:#E4E4E4;
-    font-family: system-ui, -apple-system, -apple-system-font, 'Segoe UI', 'Roboto', sans-serif;
-    font-size:12px;
-    height:100vh;
-    margin:0px;
-    padding:0px;
-    /* Padding to avoid the "unsafe" areas behind notches in the screen */
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-    text-transform:uppercase;
-    width:100%;
+#tronCanvas{
+    position: absolute;
+    background: #313335;
+}
+
+#playground{
+    position: relative;
+    margin: 10px auto;
+    border: 2px solid #026897;
+}
+
+#info {
+  position: absolute;
+  top: 35%;
+  z-index: 10;
+  background: none;
+  border: none;
+  font-size: 3.5em;
+  color: #026897;
 }
