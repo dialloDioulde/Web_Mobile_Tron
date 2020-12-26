@@ -21,8 +21,8 @@ Télécharger la dernière version d'Android Studio : https://developer.android.
 Si vous êtes sous Windows, télécharger également la dernière version de Gradle : https://gradle.org/next-steps/?version=6.6.1&format=bin  
   
 Télécharger le script d'installation en fonction de votre système d'exploitation:  
- - Windows:  
- - Linux/Mac OS:  
+ - Windows: https://github.com/dialloDioulde/Web_Mobile_Tron/blob/client/Installation/InstallationCordova.bat  
+ - Linux/Mac OS: https://github.com/dialloDioulde/Web_Mobile_Tron/blob/client/Installation/InstallationCordova.sh  
   
 Mettez ces fichiers dans un même répertoire, et ouvrer votre terminal conda pour exécuter le script d'insatllation.  
  - Windows : ```.\InstallationCordova.bat```  
