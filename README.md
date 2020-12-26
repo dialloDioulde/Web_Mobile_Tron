@@ -1,4 +1,4 @@
-# Web_Mobile_Tron  
+![Tron](https://github.com/dialloDioulde/Web_Mobile_Tron/blob/client/www/img/logo.png)  
   
 ### Auteurs: Mamadou DIALLO, Antoine JAYET-LARAFFE, Kristi MIHALI  
   
