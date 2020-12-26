@@ -188,8 +188,8 @@ function initGame(data) {
   client.off('welcome');
   client.off('motoAvailable');
   createPlayground();
-  client.on('newPlayer', addMoto);
-  //addMoto(data);
+  client.on('newPlayer', drawMoto);
+  //drawMoto(data);
 
   var boxDialog = document.createElement('dialog');
   boxDialog.id = 'info';
@@ -231,10 +231,11 @@ function createPlayground() {
   console.log(canvas_ctx);
 }
 
-function addMoto(data) {
+function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].status != "waiting") {
       var pos = scalePos(data.players[i], data.moto_size, data.size);
+      //data.players[i].path.push(pos);
       console.log(pos);
       canvas_ctx.fillStyle = data.players[i].color;
       if (data.players[i].dir == "bottom" || data.players[i].dir == "top") {
@@ -251,13 +252,22 @@ function scalePos(moto, size, scale) {
   var x, y;
   if (moto.dir == "bottom" || moto.dir == "top") {
     x = ((moto.pos.x / scale.width) * CANVAS_SIZE) - (size.w/2);
-    y = ((moto.pos.y / scale.height) * CANVAS_SIZE);
+    y = (moto.pos.y / scale.height) * CANVAS_SIZE;
   }
   if (moto.dir == "right" || moto.dir == "left") {
-    x = ((moto.pos.x / scale.width) * CANVAS_SIZE);
+    x = (moto.pos.x / scale.width) * CANVAS_SIZE;
     y = ((moto.pos.y / scale.height) * CANVAS_SIZE) - (size.w/2);
   }
   return new Position(x,y);
+}
+
+function scalePath(path, size, scale) {
+  console.log((size.w/2));
+  for (var i = 0; i < path.length; i++) {
+    console.log((path[i].x / scale.width) * CANVAS_SIZE);
+    path[i].x = ((path[i].x / scale.width) * CANVAS_SIZE) + (size.w/2);
+    path[i].y = (path[i].y / scale.height) * CANVAS_SIZE;
+  }
 }
 
 function displayPlayersList(joueurs) {
@@ -269,29 +279,15 @@ function addPlayersGame(joueurs) {
 }
 // - Lance le compte à rebours et démarre la partie
 function launchGame(joueurs){
-  displayPlayersList(joueurs);
-  addPlayersGame(joueurs);
+  //displayPlayersList(joueurs);
+  //addPlayersGame(joueurs);
   var timer = document.querySelector('#info');
   timer.innerHTML = "5";
-  //timerRun();
   timerId = setInterval(timerRun, 1000);
 }
 
 // - Éxecute le compte à rebours
 function timerRun() {
-  /*setTimeout(function(){
-    var t = document.querySelector('#info').textContent;
-    console.log(t);
-    if (parseInt(t) > 0) {
-      document.querySelector('#info').innerHTML = t-1;
-      timerRun();
-    }
-    else {
-      document.querySelector('#info').innerHTML = "GO !";
-      setTimeout(play(), 1000);
-      //console.log("launch game");
-    }
-  }, 1000);*/
   counter = parseInt(document.querySelector('#info').textContent);
   counter--;
   if (counter == 0) {
@@ -311,18 +307,32 @@ function timerRun() {
 function play() {
   console.log("play");
   document.querySelector('#info').style.display = "none";
-  //document.addEventListener('keydown', keydown);
+  document.addEventListener('keydown', keydown);
+  client.on('newDir', update);
 }
 
-
-function paintPlayer(playerState) {
-  const snake = playerState.snake;
-  contex.fillStyle = color;
-
-  for(let cell of snake){
-    contex.fillRect(cell.x * size, cell.y * size, size, size);
+function update(gameState) {
+  canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
+  drawMoto(gameState);
+  var players = gameState.players;
+  for (var i = 0; i < players.length; i++) {
+    if (players[i].status != 'waiting') {
+      canvas_ctx.beginPath();
+      console.log(players[i].path);
+      if (players[i].path.length > 1) {
+        scalePath(players[i].path, gameState.moto_size, gameState.size);
+        canvas_ctx.strokeStyle = players[i].color;
+        canvas_ctx.moveTo(players[i].path[0].x, players[i].path[0].y);
+        for (var j = 0; j < players[i].path.length; j++) {
+          canvas_ctx.lineTo(players[i].path[j].x, players[i].path[j].y);
+        }
+        canvas_ctx.lineWidth = 2;
+        canvas_ctx.stroke();
+      }
+    }
   }
 }
+
 function handleGameState(gameState) {
   gameState = JSON.parse(gameState);
   requestAnimationFrame(() => paintGame(gameState));
@@ -334,22 +344,27 @@ function handleGameOver() {
 
 function keydown(event){
   console.log(event.keyCode);
-  //socket.emit('keydown', event.keyCode);
-  var keyCode = parseInt(event);
-  var newPos = {};
-  switch(keyCode){
-      case 37: { //left
-          newPos = { x: -1, y: 0 };
-      }
-      case 38: {//down
-          newPos = { x: 0, y: -1 };
-      }
-      case 39: {//right
-          newPos = { x: 1, y: 0} ;
-      }
-      case 40: {//up
-          newPos = { x: 0, y: 1} ;
-      }
+
+  switch(event.keyCode){
+    case 37:
+      console.log("left");
+      client.emit('changeDir', joueur.id, 'left');
+      break;
+
+    case 38:
+      console.log("top");
+      client.emit('changeDir', joueur.id, 'top');
+      break;
+
+    case 39:
+      console.log("right");
+      client.emit('changeDir', joueur.id, 'right');
+      break;
+
+    case 40:
+      console.log("bottom");
+      client.emit('changeDir', joueur.id, 'bottom');
+      break;
   }
 }
 

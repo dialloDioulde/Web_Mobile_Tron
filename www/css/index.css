@@ -35,7 +35,7 @@
      overflow: hidden;
  }
  body{
-     background-color: rgba(0, 0, 0, 0.8);
+     background-color: #484848;
  }
 
  /****************************
@@ -183,7 +183,7 @@ main {
 
 #tronCanvas{
     position: absolute;
-    background: #313335;
+    background: #494d50;
 }
 
 #playground{
