@@ -29,6 +29,7 @@ function onDeviceReady() {
 }*/
 
 /** Variables globales **/
+const FRAME_RATE = 10;
 const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
 const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
 const MOTO_SIZE = {w: 7, l: 23};
@@ -51,6 +52,7 @@ var motos_available = [];
 
 var slide_index;
 var timerId;
+var gameLoopId;
 var canvas_ctx;
 
 
@@ -264,8 +266,7 @@ function scalePos(moto, size, scale) {
 function scalePath(path, size, scale) {
   console.log((size.w/2));
   for (var i = 0; i < path.length; i++) {
-    console.log((path[i].x / scale.width) * CANVAS_SIZE);
-    path[i].x = ((path[i].x / scale.width) * CANVAS_SIZE) + (size.w/2);
+    path[i].x = ((path[i].x / scale.width) * CANVAS_SIZE);
     path[i].y = (path[i].y / scale.height) * CANVAS_SIZE;
   }
 }
@@ -308,17 +309,28 @@ function play() {
   console.log("play");
   document.querySelector('#info').style.display = "none";
   document.addEventListener('keydown', keydown);
+
+  gameLoopId = setInterval(() => {
+    client.emit('updatePos', joueur.id);
+  }, 1500 / FRAME_RATE);
+  
+  client.on('update', update);
   client.on('newDir', update);
 }
+
+
 
 function update(gameState) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
   drawMoto(gameState);
   var players = gameState.players;
   for (var i = 0; i < players.length; i++) {
+    if (players[i].id == joueur.id) {
+      joueur = players[i];
+    }
+
     if (players[i].status != 'waiting') {
       canvas_ctx.beginPath();
-      console.log(players[i].path);
       if (players[i].path.length > 1) {
         scalePath(players[i].path, gameState.moto_size, gameState.size);
         canvas_ctx.strokeStyle = players[i].color;
@@ -366,6 +378,13 @@ function keydown(event){
       client.emit('changeDir', joueur.id, 'bottom');
       break;
   }
+}
+
+function handleMove(event) {
+  console.log(event.touches);
+  var touches = event.touches;
+  console.log(touches[0].clientX);
+  console.log(touches[0].clientY);
 }
 
 // - Classe qui représente les positions des objets du jeu à l'écran

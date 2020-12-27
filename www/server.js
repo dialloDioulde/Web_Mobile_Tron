@@ -51,7 +51,8 @@ io.on('connection', socket => {
 
   socket.on('login', newPlayer);
   socket.on('ready', init);
-  socket.on('changeDir', newPos);
+  socket.on('updatePos', move);
+  socket.on('changeDir', newDir);
   socket.on('disconnect', function() {
     console.log("disconnect");
     console.log(socket.id);
@@ -112,59 +113,73 @@ function init(callback) {
     io.sockets.emit('init', game.players);
     game.playing = true;
     console.log(game.players);
+    //setTimeout(updateGame, 5000);
   }
 }
 
-function newPos(playerID, direction) {
+function move(playerID) {
   for (var i = 0; i < game.players.length; i++) {
+    var x, y;
     if (game.players[i].id == playerID) {
-      var x, y;
-      if (direction == "left") {
+      if (game.players[i].dir == "top") {
+        x = game.players[i].pos.x;
+        y = game.players[i].pos.y - game.step;
+      }
+      else if (game.players[i].dir == "left") {
         x = game.players[i].pos.x - game.step;
         y = game.players[i].pos.y;
-        //game.players[i].path.push({x: game.players[i].pos.x, y: game.players[i].pos.y});
-        game.players[i].dir = "left";
       }
-      else if (direction == "bottom") {
-        x = game.players[i].pos.x;
-        y = game.players[i].pos.y + game.step;
-        //game.players[i].path.push({x: x, y: y});
-        game.players[i].dir = "bottom";
-      }
-      else if (direction == "right") {
+      else if (game.players[i].dir == "right") {
         x = game.players[i].pos.x + game.step;
         y = game.players[i].pos.y;
-        //game.players[i].path.push({x: x, y: y});
-        game.players[i].dir = "right";
       }
       else {
         x = game.players[i].pos.x;
-        y = game.players[i].pos.y - game.step;
-        //game.players[i].path.push({x: game.players[i].pos.x, y: game.players[i].pos.y});
-        game.players[i].dir = "top";
+        y = game.players[i].pos.y + game.step;
       }
 
       game.players[i].path.push({x: x, y: y});
       game.players[i].pos = {x: x, y: y};
       if (game.players[i].path.length > game.path_length) {
-        console.log("shift");
         game.players[i].path.shift();
       }
     }
   }
-  io.sockets.emit('newDir', game);
+  io.sockets.emit('update', game);
 }
 
-function startGameInterval(client, state){
+function newDir(playerID, direction) {
+  for (var i = 0; i < game.players.length; i++) {
+    if (game.players[i].id == playerID) {
+      var x, y;
+      if (direction == "left") {
+        game.players[i].dir = "left";
+      }
+      else if (direction == "bottom") {
+        game.players[i].dir = "bottom";
+      }
+      else if (direction == "right") {
+        game.players[i].dir = "right";
+      }
+      else {
+        game.players[i].dir = "top";
+      }
+    }
+  }
+  io.sockets.emit('update', game);
+}
+
+function startGameInterval(){
   const intervalId = setInterval(() => {
-    const winner = gameLoop(state);
+    /*const winner = gameLoop(state);
     // console.log('interval');
     if( !winner ){
       client.emit('gameState', JSON.stringify(state));
     }else{
       client.emit('gameOver');
       clearInterval(intervalId);
-    }
+    }*/
+
   }, 1500 / FRAME_RATE); //number of miliseconds to wait from each frame
 }
 
