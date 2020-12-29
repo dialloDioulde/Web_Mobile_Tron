@@ -185,7 +185,6 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
 ************************************/
 // - Affiche l'air de jeu
 function initGame(data) {
-  console.log("initGame");
   document.querySelector('.overlay').style.display = "none";
   client.off('welcome');
   client.off('motoAvailable');
@@ -209,6 +208,7 @@ function initGame(data) {
   });
 
   client.on('init', launchGame);
+  client.on('finish', finish);
 }
 
 // - Créer l'aire de jeu avec les bonnes dimensions
@@ -237,8 +237,6 @@ function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].status != "waiting") {
       var pos = scalePos(data.players[i], data.moto_size, data.size);
-      //data.players[i].path.push(pos);
-      console.log(pos);
       canvas_ctx.fillStyle = data.players[i].color;
       if (data.players[i].dir == "bottom" || data.players[i].dir == "top") {
         canvas_ctx.fillRect(pos.x, pos.y, data.moto_size.w, data.moto_size.l);
@@ -250,25 +248,27 @@ function drawMoto(data) {
   }
 }
 
-function scalePos(moto, size, scale) {
+function scalePos(player, size, scale) {
   var x, y;
-  if (moto.dir == "bottom" || moto.dir == "top") {
-    x = ((moto.pos.x / scale.width) * CANVAS_SIZE) - (size.w/2);
-    y = (moto.pos.y / scale.height) * CANVAS_SIZE;
+  if (player.dir == "bottom" || player.dir == "top") {
+    x = parseFloat((((player.pos.x / scale.width) * CANVAS_SIZE) - (size.w/2)).toFixed(2));
+    y = parseFloat(((player.pos.y / scale.height) * CANVAS_SIZE).toFixed(2));
   }
-  if (moto.dir == "right" || moto.dir == "left") {
-    x = (moto.pos.x / scale.width) * CANVAS_SIZE;
-    y = ((moto.pos.y / scale.height) * CANVAS_SIZE) - (size.w/2);
+  if (player.dir == "right" || player.dir == "left") {
+    x = parseFloat(((player.pos.x / scale.width) * CANVAS_SIZE).toFixed(2));
+    y = parseFloat((((player.pos.y / scale.height) * CANVAS_SIZE) - (size.w/2)).toFixed(2));
   }
-  return new Position(x,y);
+  return {x: x, y: y};
 }
 
-function scalePath(path, size, scale) {
-  console.log((size.w/2));
+function scalePath(path, scale) {
+  var normalizePath = [];
   for (var i = 0; i < path.length; i++) {
-    path[i].x = ((path[i].x / scale.width) * CANVAS_SIZE);
-    path[i].y = (path[i].y / scale.height) * CANVAS_SIZE;
+    var x = parseFloat(((path[i].x / scale.width) * CANVAS_SIZE).toFixed(2));
+    var y = parseFloat(((path[i].y / scale.height) * CANVAS_SIZE).toFixed(2));
+    normalizePath.push({x: x, y: y});
   }
+  return normalizePath;
 }
 
 function displayPlayersList(joueurs) {
@@ -279,9 +279,17 @@ function addPlayersGame(joueurs) {
 
 }
 // - Lance le compte à rebours et démarre la partie
-function launchGame(joueurs){
+function launchGame(gameState){
   //displayPlayersList(joueurs);
   //addPlayersGame(joueurs);
+  for (var i = 0; i < gameState.players.length; i++) {
+    if (gameState.players[i].id == joueur.id) {
+      console.log(gameState.players[i].pos);
+      joueur.pos = scalePos(gameState.players[i], gameState.moto_size, gameState.size);
+    }
+  }
+  console.log(joueur.pos);
+
   var timer = document.querySelector('#info');
   timer.innerHTML = "5";
   timerId = setInterval(timerRun, 1000);
@@ -311,71 +319,142 @@ function play() {
   document.addEventListener('keydown', keydown);
 
   gameLoopId = setInterval(() => {
-    client.emit('updatePos', joueur.id);
+    if (joueur.status != 'waiting' && joueur.status != 'dead') {
+      switch (joueur.dir) {
+        case "top":
+          joueur.pos.y -= 24;
+          break;
+        case "bottom":
+          joueur.pos.y += 24;
+          break;
+        case "left":
+          joueur.pos.x -= 24;
+          break;
+        case "right":
+          joueur.pos.x += 24;
+          break;
+      }
+      client.emit('updatePos', joueur, CANVAS_SIZE);
+    }
   }, 1500 / FRAME_RATE);
-  
+
   client.on('update', update);
   client.on('newDir', update);
 }
-
-
 
 function update(gameState) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
   drawMoto(gameState);
   var players = gameState.players;
   for (var i = 0; i < players.length; i++) {
-    if (players[i].id == joueur.id) {
-      joueur = players[i];
-    }
-
     if (players[i].status != 'waiting') {
       canvas_ctx.beginPath();
       if (players[i].path.length > 1) {
-        scalePath(players[i].path, gameState.moto_size, gameState.size);
+        var normalizePath = scalePath(players[i].path, gameState.size);
         canvas_ctx.strokeStyle = players[i].color;
-        canvas_ctx.moveTo(players[i].path[0].x, players[i].path[0].y);
-        for (var j = 0; j < players[i].path.length; j++) {
-          canvas_ctx.lineTo(players[i].path[j].x, players[i].path[j].y);
+        canvas_ctx.moveTo(normalizePath[0].x, normalizePath[0].y);
+        for (var j = 1; j < normalizePath.length; j++) {
+          canvas_ctx.lineTo(normalizePath[j].x, normalizePath[j].y);
         }
         canvas_ctx.lineWidth = 2;
         canvas_ctx.stroke();
       }
     }
+
+    if (players[i].id == joueur.id) {
+      joueur.path = normalizePath;
+      joueur.dir = players[i].dir;
+    }
+  }
+
+  checkCollision(gameState);
+  client.on('collide', playerDead);
+}
+
+function playerDead(gameState) {
+  if (gameState.nbPlayers_alive <= 1) {
+    clearInterval(gameLoopId);
+  }
+
+  for (var i = 0; i < gameState.players.length; i++) {
+    if (gameState.players[i].id == joueur.id) {
+      if (gameState.players[i].status == "dead") {
+        document.querySelector('#info').innerHTML = "GAME OVER";
+        document.querySelector('#info').style.display = 'block';
+      }
+    }
   }
 }
 
-function handleGameState(gameState) {
-  gameState = JSON.parse(gameState);
-  requestAnimationFrame(() => paintGame(gameState));
-}
+function checkCollision(gameState) {
+  //var myPos = scalePos(joueur, gameState.moto_size, gameState.size);
+  var myPos = joueur.pos;
+  if (joueur.dir == "bottom") {
+    myPos = {x: myPos.x, y: myPos.y+gameState.moto_size.l};
+  }
+  if (joueur.dir == "right") {
+    myPos = {x: myPos.x+gameState.moto_size.l, y: myPos.y};
+  }
+  console.log(myPos);
+  for (var i = 0; i < gameState.players.length; i++) {
+    if (gameState.players[i].id != joueur.id) {
+      var normalizePath = scalePath(gameState.players[i].path, gameState.size);
 
-function handleGameOver() {
-  alert("You Lose!");
+      for (var j = 0; j < normalizePath.length; j++) {
+        if (   Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
+            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1) {
+          client.emit('collision', joueur.id);
+          console.log("COLLIDE !!!");
+        }
+      }
+    }
+  }
+
+  if (myPos.x >= CANVAS_SIZE || myPos.x <= 0 || myPos.y >= CANVAS_SIZE || myPos.y <= 0) {
+    client.emit('collision', joueur.id);
+    console.log("COLLIDE !!!");
+  }
+
+  for (var i = 0; i < joueur.path.length-1; i++) {
+    if (Math.trunc(myPos.x) == Math.trunc(joueur.path[i].x) &&
+        Math.trunc(myPos.y) == Math.trunc(joueur.path[i].y)) {
+      client.emit('collision', joueur.id);
+      console.log("COLLIDE !!!");
+    }
+  }
 }
 
 function keydown(event){
-  console.log(event.keyCode);
-
   switch(event.keyCode){
     case 37:
-      console.log("left");
+      //joueur.pos.x -= 24;
       client.emit('changeDir', joueur.id, 'left');
       break;
 
     case 38:
-      console.log("top");
+      //joueur.pos.y -= 24;
       client.emit('changeDir', joueur.id, 'top');
       break;
 
     case 39:
-      console.log("right");
+      //joueur.pos.x += 24;
       client.emit('changeDir', joueur.id, 'right');
       break;
 
     case 40:
-      console.log("bottom");
+      //joueur.pos.y += 24;
       client.emit('changeDir', joueur.id, 'bottom');
+      break;
+
+    case 80:
+      clearInterval(gameLoopId);
       break;
   }
 }
@@ -387,24 +466,6 @@ function handleMove(event) {
   console.log(touches[0].clientY);
 }
 
-// - Classe qui représente les positions des objets du jeu à l'écran
-class Position {
-  // - Constructeur
-  constructor(x=0,y=0){
-    if(this == window || this == undefined){              // si this est égale à l'objet global window ou si this est undefined
-      return new Position(x,y);                           // - on retourne une nouvelle instance de Position avec x=0 et y=0
-    }
-    else {                                                // sinon
-      this.x = x;                                         // - on initialise un attribut x avec la valeur du paramètre x
-      this.y = y;                                         // - on initialise un attribut y avec la valeur du paramètre y
-      return this;                                        // - on retourne la position crée avec ses attributs x,y
-    }
-  }
+function finish(gameState) {
 
-  // - Ajoute une position à this
-  add(pos=Position()) {
-    this.x = this.x + pos.x;                              // on ajoute la coordonnée x à l'attribut x de notre position
-    this.y = this.y + pos.y;                              // on ajoute la coordonnée y à l'attribut y de notre position
-    return this;                                          // on retourne la nouvelle position
-  }
 }
