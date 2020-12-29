@@ -1,6 +1,4 @@
 const io = require('socket.io')();
-const { createGameState, gameLoop, getUpdatedVelocity } = require('./game');
-const { FRAME_RATE } = require('./constants');
 
 var game = {
   size: {width: 100, height: 100},
@@ -22,30 +20,11 @@ var game = {
     [{x: 98, y: 50}]
   ],
   initial_directions: ["bottom", "top", "right", "left"],
-  playing: false
+  playing: false,
+  nbPlayers_alive: 0
 };
 
 io.on('connection', socket => {
-  /*const state = createGameState();
-
-  client.on('keydown', handleKeydown);
-
-  function handleKeydown(keyCode){
-    try {
-      keyCode = parseInt(keyCode);
-    } catch(event) {
-      console.error(event);
-      return;
-    }
-
-    const velocity = getUpdatedVelocity(keyCode);
-
-    if(velocity){
-      state.player.velocity = velocity;
-    }
-
-  }
-  startGameInterval(client, state);*/
   console.log("New connection:", socket.id);
   socket.emit('welcome', socket.id, game.motos_available);
 
@@ -53,6 +32,7 @@ io.on('connection', socket => {
   socket.on('ready', init);
   socket.on('updatePos', move);
   socket.on('changeDir', newDir);
+  socket.on('collision', collide);
   socket.on('disconnect', function() {
     console.log("disconnect");
     console.log(socket.id);
@@ -100,8 +80,6 @@ function newPlayer(joueur, callback) {
   io.sockets.emit('newPlayer', game);
 }
 
-
-
 function init(callback) {
   if (game.players.length <= 1) {
     return callback("waitOther");
@@ -110,18 +88,22 @@ function init(callback) {
     return callback("waitPlay")
   }
   if (game.players.length > 1 && game.playing == false) {
-    io.sockets.emit('init', game.players);
+    io.sockets.emit('init', game);
     game.playing = true;
+    game.nbPlayers_alive = game.players.length;
     console.log(game.players);
-    //setTimeout(updateGame, 5000);
   }
 }
 
-function move(playerID) {
+function move(player, scale) {
+  var playerID = player.id;
+  var posNormalize = normalizePlayer(player.pos, scale);
   for (var i = 0; i < game.players.length; i++) {
     var x, y;
     if (game.players[i].id == playerID) {
-      if (game.players[i].dir == "top") {
+      game.players[i].pos.x = posNormalize.x;
+      game.players[i].pos.y = posNormalize.y;
+      /*if (game.players[i].dir == "top") {
         x = game.players[i].pos.x;
         y = game.players[i].pos.y - game.step;
       }
@@ -136,10 +118,10 @@ function move(playerID) {
       else {
         x = game.players[i].pos.x;
         y = game.players[i].pos.y + game.step;
-      }
+      }*/
 
-      game.players[i].path.push({x: x, y: y});
-      game.players[i].pos = {x: x, y: y};
+      game.players[i].path.push(posNormalize);
+      //game.players[i].pos = {x: x, y: y};
       if (game.players[i].path.length > game.path_length) {
         game.players[i].path.shift();
       }
@@ -148,39 +130,66 @@ function move(playerID) {
   io.sockets.emit('update', game);
 }
 
+function normalizePlayer(position, scale) {
+  var x = parseFloat(((position.x/scale) * game.size.width).toFixed(2));
+  var y = parseFloat(((position.y/scale) * game.size.height).toFixed(2));
+  return {x: x, y: y};
+}
+
 function newDir(playerID, direction) {
+  //var playerID = player.id;
+  //console.log(player.pos);
+  //var posNormalize = normalizePlayer(player.pos, scale);
+  //console.log(posNormalize);
+
   for (var i = 0; i < game.players.length; i++) {
     if (game.players[i].id == playerID) {
-      var x, y;
+      /*game.players[i].pos.x = posNormalize.x;
+      game.players[i].pos.y = posNormalize.y;*/
+      game.players[i].dir = direction;
+      /*var x, y;
       if (direction == "left") {
+        x = game.players[i].pos.x - game.step;
+        y = game.players[i].pos.y;
         game.players[i].dir = "left";
       }
       else if (direction == "bottom") {
+        x = game.players[i].pos.x;
+        y = game.players[i].pos.y + game.step;
         game.players[i].dir = "bottom";
       }
       else if (direction == "right") {
+        x = game.players[i].pos.x + game.step;
+        y = game.players[i].pos.y;
         game.players[i].dir = "right";
       }
       else {
+        x = game.players[i].pos.x;
+        y = game.players[i].pos.y - game.step;
         game.players[i].dir = "top";
-      }
+      }*/
+
+      //game.players[i].path.push(posNormalize);
+      //game.players[i].pos = {x: x, y: y};
+      /*if (game.players[i].path.length > game.path_length) {
+        game.players[i].path.shift();
+      }*/
     }
   }
   io.sockets.emit('update', game);
 }
 
-function startGameInterval(){
-  const intervalId = setInterval(() => {
-    /*const winner = gameLoop(state);
-    // console.log('interval');
-    if( !winner ){
-      client.emit('gameState', JSON.stringify(state));
-    }else{
-      client.emit('gameOver');
-      clearInterval(intervalId);
-    }*/
-
-  }, 1500 / FRAME_RATE); //number of miliseconds to wait from each frame
+function collide(playerID) {
+  for (var i = 0; i < game.players.length; i++) {
+    if (game.players[i].id == playerID) {
+      game.players[i].status = "dead";
+      game.nbPlayers_alive--;
+    }
+  }
+  if (game.nbPlayers_alive == 1) {
+    io.sockets.emit('finish', game);
+  }
+  io.sockets.emit('collide', game);
 }
 
 io.listen(3000);
