@@ -7,7 +7,6 @@ const Schema = mongoose.Schema;
 const playerSchema = new Schema({
     loginID: {
         type: String,
-        unique: true,
     },
     name: {
         type: String,
@@ -16,8 +15,9 @@ const playerSchema = new Schema({
     },
     motoColor: {
         type: String,
-        required: true,
-        unique: true,
+    },
+    status: {
+        type: String,
     },
     score:{
         type: Number,

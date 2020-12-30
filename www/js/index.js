@@ -233,6 +233,15 @@ function createPlayground() {
   console.log(canvas_ctx);
 }
 
+// Début : Mise en place du Score
+/*function createScore() {
+  var playerScore = document.querySelector('#playerScore');
+
+}
+
+ */
+// Fin : Mise en place du Score
+
 function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].status != "waiting") {

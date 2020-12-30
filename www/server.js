@@ -1,5 +1,31 @@
 const io = require('socket.io')();
 
+// ************ Début : MongoDB  **************************************** //
+const Player = require("./models/Player");
+const mongoose = require("mongoose");
+mongoose.connect('mongodb://127.0.0.1:27017/tron', {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.set('useFindAndModify', false);
+const db = mongoose.connection;
+
+db.on('error', error => {
+  console.log(error);
+});
+
+db.once('open', () => {
+  console.log('Database Connection works !');
+});
+
+// ************ Fin : MongoDB  ******************************************* //
+
+// ************ Début : Déclaration des Variables ************************ //
+let playerData = {};
+let verifyDead = false;
+let gameStart = '';
+let gameEnd = '';
+let playerScore = 0;
+let pl_score = 0;
+// ************ Fin : Déclaration des Variables ************************** //
+
 var game = {
   size: {width: 100, height: 100},
   players: [],
@@ -73,12 +99,38 @@ function newPlayer(joueur, callback) {
   }
   game.players.push(joueur);
 
+  // ************** Début :  Création d'un Joueur ******************************************************************* //
+  Player.findOne({name: joueur.pseudo}, function (err, pl_pseudo) {
+    if (err) return handleError(err);
+    if(pl_pseudo == null){
+      let player = new Player({
+        loginID: joueur.id ,
+        name: joueur.pseudo,
+        motoColor: joueur.moto,
+        status: "living",
+        score: 0,
+      });
+      player.save();
+      console.log(" Pseudo créé : Create " );
+    }else{
+      Player.findOneAndUpdate({name: joueur.pseudo}, {loginID: joueur.id, motoColor: joueur.moto, status: "living", score: 0}, function(err, pl_data){
+        if (err){
+          console.log("errr",err);
+        }else{
+          console.log(" Pseudo créé : Update " );
+        }
+      });
+    }
+  });
+  // ************** Fin : Création d'un Joueur ********************************************************************** //
+
   game.motos_available.splice(game.motos_available.indexOf(joueur.moto), 1);
   console.log(joueur);
   console.log(game);
   callback(game);
   io.sockets.emit('newPlayer', game);
 }
+
 
 function init(callback) {
   if (game.players.length <= 1) {
@@ -92,6 +144,22 @@ function init(callback) {
     game.playing = true;
     game.nbPlayers_alive = game.players.length;
     console.log(game.players);
+    gameStart = new Date().getTime() / 1000;
+
+    // ************** Début : Récupération de la liste des Joueurs ************************************************** //
+    Player.find(function (err, playersList) {
+      if (err) {
+        return console.error(err);
+      }
+      playersList.forEach(player_data => {
+        playerData = {"id": player_data._id, "loginID": player_data.loginID, "pseudo": player_data.name, "status": player_data.status, "score": player_data.score};
+        console.log(playerData.id, playerData.loginID, playerData.pseudo, playerData.status, playerData.score + " Joueur" );
+        //player_data[1].name,
+        //player_data[1].score
+      })
+    });
+    // ************** Fin : Récupération de la liste des Joueurs **************************************************** //
+
   }
 }
 
@@ -179,17 +247,60 @@ function newDir(playerID, direction) {
   io.sockets.emit('update', game);
 }
 
+
 function collide(playerID) {
   for (var i = 0; i < game.players.length; i++) {
     if (game.players[i].id == playerID) {
       game.players[i].status = "dead";
       game.nbPlayers_alive--;
+      verifyDead = true;
+      gameEnd = new Date().getTime() / 1000;
+      pl_score = gameEnd - gameStart;
     }
   }
   if (game.nbPlayers_alive == 1) {
     io.sockets.emit('finish', game);
   }
   io.sockets.emit('collide', game);
+
+ if(verifyDead){
+   // ************** Début : Récupération du Joueur mort ************************************************************ //
+   Player.findOne({loginID: playerID}, function(err, pl_data){
+     if (err){
+       console.log("errr",err);
+     }else{
+       console.log(" Joueur Mort : Ok ");
+     }
+   });
+   // ************** Fin : Récupération du Joueur mort ************************************************************** //
+
+
+   // ************** Début :  Mise à Jour du Statut ***************************************************************** //
+   Player.findOneAndUpdate({loginID: playerID}, {status: "dead", score: pl_score}, function(err, pl_data){
+     if (err){
+       console.log("errr",err);
+     }else{
+       console.log(" Le statut du Joueur est mis à jour mort : OK " );
+     }
+   });
+   // ************** Fin :  Mise à Jour du Statut ******************************************************************* //
+ }
+
+  // ************** Début : Tableau de Résultats ******************************************************************** //
+  Player.find(function (err, playersList) {
+    if (err) {
+      return console.error(err);
+    }
+    playersList.forEach(player_data => {
+      playerData = {
+        "id": player_data._id, "loginID": player_data.loginID, "pseudo": player_data.name,
+        "status": player_data.status, "score": player_data.score
+      };
+      console.log(playerData.id, playerData.loginID, playerData.pseudo, playerData.status, playerData.score + " Résultats");
+    })
+  });
+  // ************** Fin : Tableau de Résultats  ********************************************************************* //
+
 }
 
 io.listen(3000);
