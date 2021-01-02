@@ -48,6 +48,10 @@ var joueur = {
   win: 0,
   lose: 0
 };
+let gameData = [];
+let test = '';
+let dataToDisplay = {};
+let loopVerification = false;
 var motos_available = [];
 
 var slide_index;
@@ -233,14 +237,6 @@ function createPlayground() {
   console.log(canvas_ctx);
 }
 
-// Début : Mise en place du Score
-/*function createScore() {
-  var playerScore = document.querySelector('#playerScore');
-
-}
-
- */
-// Fin : Mise en place du Score
 
 function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
@@ -349,7 +345,58 @@ function play() {
 
   client.on('update', update);
   client.on('newDir', update);
+  //************** Début : Récupération des Statistique du Jeu *******************************************************//
+  client.on('player_id', function (playerDataID) {
+    //gameData.push(playerDataID);
+    console.log(playerDataID + " id ");
+    getData(playerDataID);
+    let player_id = "player_id"
+    getDataDict(player_id,playerDataID);
+  });
+  client.on('player_login_id', function (playerDataLoginID) {
+    //gameData.push(playerDataLoginID);
+    console.log(playerDataLoginID + " loginID ");
+    getData(playerDataLoginID);
+    let player_loginID =" player_loginID";
+    getDataDict(player_loginID,playerDataLoginID);
+  });
+  client.on('player_pseudo', function (playerDataPseudo) {
+    //gameData.push(playerDataPseudo);
+    console.log(playerDataPseudo + " pseudo ");
+    getData(playerDataPseudo);
+    let player_pseudo = "player_pseudo";
+    getDataDict(player_pseudo,playerDataPseudo);
+  });
+  client.on('player_moto', function (playerDataMoto) {
+    //gameData.push(playerDataMoto);
+    console.log(playerDataMoto + " moto ");
+    getData(playerDataMoto);
+    let player_moto = "player_moto";
+    getDataDict(player_moto,playerDataMoto);
+  });
+  client.on('player_status', function (playerDataStatus) {
+    //gameData.push(playerDataStatus);
+    console.log(playerDataStatus + " statut ");
+    getData(playerDataStatus);
+    let player_status = "player_status";
+    getDataDict(player_status,playerDataStatus);
+  });
+  client.on('player_score', function (playerDataScore) {
+    //gameData.push(playerDataScore);
+    console.log(playerDataScore + " score ");
+    getData(playerDataScore);
+    let player_score = "player_score";
+    getDataDict(player_score,playerDataScore);
+    loopVerification = true;
+  });
+  //************** Fin : Récupération des Statistique du Jeu *********************************************************//
+
+  //************** Début : Écoute des Evenements (Statistique du Jeu) ************************************************//
+  client.on('stopGame', getData);
+  client.on('stopGame', getDataDict);
+  //************** Fin : Écoute des Evenements (Statistique du Jeu) **************************************************//
 }
+
 
 function update(gameState) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
@@ -435,7 +482,6 @@ function checkCollision(gameState) {
     if (Math.trunc(myPos.x) == Math.trunc(joueur.path[i].x) &&
         Math.trunc(myPos.y) == Math.trunc(joueur.path[i].y)) {
       client.emit('collision', joueur.id);
-      console.log("COLLIDE !!!");
     }
   }
 }
@@ -478,3 +524,90 @@ function handleMove(event) {
 function finish(gameState) {
 
 }
+
+//************** Début : Affichage des Statistique du Jeu ************************************************************//
+let pl_data_to_display = {};
+function getDataDict(label,pl_data) {
+  if(pl_data !== null && pl_data !== undefined) {
+    // Début : Récupération et Prépration des Données
+    dataToDisplay[label] = pl_data;
+    console.log(JSON.stringify(dataToDisplay) + " C'est moi Goundouba !");
+    pl_data_to_display = JSON.stringify(dataToDisplay);
+    console.log(JSON.parse(pl_data_to_display));
+    // Fin :  Récupération et Prépration des Données
+
+    // Début : Trie des Données pour l'Affichage
+    Object.entries(dataToDisplay).forEach(([key, val]) => {
+      if(val !== null && val !== undefined && loopVerification === true) {
+        if (key === 'player_pseudo' || key === 'player_score') {
+          console.log(key + ' ' + val);
+
+          // Début :  Mise en Place du HTML pour l'affichage
+          var newDiv = document.createElement("div");
+          newDiv.id = 'resData';
+          document.querySelector('#info').appendChild(newDiv);
+
+          var newContent = document.createTextNode('');
+          if (key === 'player_pseudo') {
+            newContent = document.createTextNode( " Joueur : " +  "  "  + val);
+          }else if (key === 'player_score') {
+            newContent = document.createTextNode( " Score : " +  "  "  + val);
+          }
+
+          // ajoute le nœud texte au nouveau div créé
+          newDiv.appendChild(newContent);
+
+
+          document.querySelector('#resData').innerHTML = " Test Des Statistiques ! ";
+          document.querySelector('#resData').style.display = 'block';
+          // Fin :  Mise en Place du HTML pour l'affichage
+        }
+      }
+    });
+    // Fin : Trie des Données pour l'Affichage
+
+  }
+
+}
+//************** Fin : Affichage des Statistique du Jeu **************************************************************//
+
+
+//********************************* Début : Récupération des Données depuis le Serveur *******************************//
+function getData(pl_data) {
+  if(pl_data !== null && pl_data !== undefined && !gameData.includes(pl_data)) {
+    gameData.push(pl_data);
+  }
+
+  /*
+  var newDiv = document.createElement("div");
+  newDiv.id = 'resData';
+  document.querySelector('#info').appendChild(newDiv);
+
+  if(pl_data !== null && pl_data !== undefined && !gameData.includes(pl_data)) {
+    gameData.push(pl_data);
+  }
+  console.log(gameData);
+  var newContent = document.createTextNode('');
+  for (let i = 1; i <= gameData.length; i++) {
+    if(gameData[i] !== null && gameData[i] !== undefined) {
+      console.log(gameData[i] + " Je suis là ! ");
+      newContent = document.createTextNode(gameData[i]);
+    }
+  }
+  // ajoute le nœud texte au nouveau div créé
+  newDiv.appendChild(newContent);
+  //let data_table = '<table>';
+  //data_table += '<tr><td>' + pl_data + '</td></tr>';
+  //data_table += '</table>';
+  //document.querySelector('#info').innerHTML += data_table;
+
+  document.querySelector('#resData').innerHTML = " Test Des Statistiques ! ";
+  document.querySelector('#resData').style.display = 'block';
+
+   */
+
+}
+//*********************************** Fin : Récupération des Données depuis le Serveur *******************************//
+
+
+
