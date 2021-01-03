@@ -43,15 +43,25 @@ var game = {
 };
 
 io.on('connection', socket => {
-  console.log("New connection:", socket.id);
-  socket.emit('welcome', socket.id, game.motos_available);
+    console.log("New connection:", socket.id);
+    socket.emit('welcome', socket.id, game.motos_available);
 
-
-  socket.on('login', newPlayer);
-  socket.on('ready', init);
-  socket.on('updatePos', move);
-  socket.on('changeDir', newDir);
-  socket.on('collision', collide);
+//ROOMS
+//    let roomName = makeid(5);
+//    clientRooms[client.id] = roomName;
+//    client.emit('gameCode', roomName);
+//
+//    state[roomName] = initGame();
+//
+//    client.join(roomName);
+//    client.number = 1;
+//    client.emit('initGame', 1);
+//END ROOMS
+    socket.on('login', newPlayer);
+    socket.on('ready', init);
+    socket.on('updatePos', move);
+    socket.on('changeDir', newDir);
+    socket.on('collision', collide);
 
   //************************ Début : Enregistrement Des Statistiques Du Jeu dans la BDD ******************************//
   // GAGNANT
@@ -119,6 +129,7 @@ function newPlayer(joueur, callback) {
   joueur.path = game.initial_paths[game.players.length];
 
   if (game.playing) {
+  //shto room ketu
     joueur.status = "waiting";
   }
   game.players.push(joueur);

@@ -30,7 +30,7 @@ function onDeviceReady() {
 
 /** Variables globales **/
 const FRAME_RATE = 10;
-const CANVAS_SIZE = (Math.min(innerWidth, innerHeight) - 20);
+const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
 const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
 const MOTO_SIZE = {w: 7, l: 23};
 
@@ -69,7 +69,6 @@ window.onload = function() {
     joueur.pseudo = localStorage.pseudo;
     document.login.children.pseudo.value = joueur.pseudo;
   }
-
     let isSimulator;
 
     document.addEventListener("deviceready", onDeviceReady, false);
@@ -78,6 +77,10 @@ window.onload = function() {
         isSimulator = device.isVirtual;
         // console.log(device.isVirtual);
     //    console.log(isSimulator);
+//        if(!isSimulator){
+////            document.getElementById("fleches").style.visibility = "hidden";
+//            document.getElementById("fleches").style.display = "none";
+//        }
     }
 
     if(isSimulator){
@@ -87,11 +90,8 @@ window.onload = function() {
     }
 
 
-    if(!device.isVirtual){
-        document.getElementById("fleches").style.visibility = "hidden";
-        document.getElementById("fleches").style.display = "none";
-      }
-  client.on('welcome', function(socketId, listMoto) {
+
+    client.on('welcome', function(socketId, listMoto) {
     joueur.id = socketId;
     createMotoSelector(listMoto);
   });
@@ -300,9 +300,9 @@ function displayPlayersList(joueurs) {
 
 }
 
-//function addPlayersGame(joueurs) {
-//
-//}
+function addPlayersGame(joueurs) {
+
+}
 // - Lance le compte à rebours et démarre la partie
 function launchGame(gameState){
   //displayPlayersList(joueurs);
@@ -338,6 +338,7 @@ function timerRun() {
  *              JEU             *
  *******************************/
 
+
 /*
       *              Add movement to the Buttons             *
       **/
@@ -355,7 +356,7 @@ function timerRun() {
 
 
       document.getElementById('west').addEventListener('click', function(e) {
-        client.emit('changeDir', joueur.id, 'bottom');
+        client.emit('changeDir', joueur.id, 'left');
 //        console.log("this is sparta");
       });
 
@@ -368,11 +369,12 @@ function timerRun() {
       *             End of Adding movement to the Buttons             *
       **/
 
+
+
 function play() {
   console.log("play");
   document.querySelector('#info').style.display = "none";
   document.addEventListener('keydown', keydown);
-
 
   gameLoopId = setInterval(() => {
     if (joueur.status != 'waiting' && joueur.status != 'dead') {
@@ -393,9 +395,7 @@ function play() {
       client.emit('updatePos', joueur, CANVAS_SIZE);
       gameStart = new Date().getTime() / 1000;
     }
-  }, 1000 / FRAME_RATE);
-
-
+  }, 1500 / FRAME_RATE);
 
   client.on('update', update);
   client.on('newDir', update);
@@ -502,18 +502,10 @@ function playerDead(gameState) {
       }
     }
     //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
+
   }
 
-  let constant = 0;
   for (var i = 0; i < gameState.players.length; i++) {
-    if (gameState.players[i].id == joueur.id) {
-         constant++ ;
-    }
-    if(constant < 2){
-        if (gameState.players[i].status == "dead") {
-            document.querySelector('#info').innerHTML = "GAME OVER";
-            document.querySelector('#info').style.display = 'block';
-        }
     if (gameState.players[i].id === joueur.id) {
       if (gameState.players[i].status === "dead") {
         //********************** Début : Affichage Des Résultats Du JEU (PERDANT) ************************************//
@@ -577,7 +569,7 @@ function playerDead(gameState) {
     }
   }
 }
-}
+
 function checkCollision(gameState) {
   //var myPos = scalePos(joueur, gameState.moto_size, gameState.size);
   var myPos = joueur.pos;
@@ -660,3 +652,8 @@ function handleMove(event) {
 function finish(gameState) {
 
 }
+
+
+
+
+
