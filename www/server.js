@@ -242,6 +242,18 @@ function collide(playerID) {
     if (game.players[i].id == playerID) {
       game.players[i].status = "dead";
       game.nbPlayers_alive--;
+      game.initial_positions = [
+          {x: 50, y: 2},
+          {x: 50, y: 94.5},
+          {x: 2, y: 50},
+          {x: 94.5, y: 50}
+      ];
+      game.initial_paths= [
+          [{x: 50, y: 2}],
+          [{x: 50, y: 98}],
+          [{x: 2, y: 50}],
+          [{x: 98, y: 50}]
+      ];
       verifyDead = true;
     }
   }

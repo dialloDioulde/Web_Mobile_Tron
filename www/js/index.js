@@ -30,7 +30,7 @@ function onDeviceReady() {
 
 /** Variables globales **/
 const FRAME_RATE = 10;
-const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
+const CANVAS_SIZE = (Math.min(innerWidth, innerHeight) - 20);
 const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
 const MOTO_SIZE = {w: 7, l: 23};
 
@@ -60,6 +60,8 @@ var gameLoopId;
 var canvas_ctx;
 
 
+
+
 /***************************************
 *       CONNEXION avec le SERVEUR      *
 ***************************************/
@@ -69,7 +71,31 @@ window.onload = function() {
     document.login.children.pseudo.value = joueur.pseudo;
   }
 
-  client = io('http://10.185.212.23:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+let isSimulator;
+
+document.addEventListener("deviceready", onDeviceReady, false);
+function onDeviceReady() {
+//    console.log("device: ");
+    isSimulator = device.isVirtual;
+    // console.log(device.isVirtual);
+//    console.log(isSimulator);
+}
+
+if(isSimulator){
+    client = io.connect('http://10.0.2.2:3030/');
+}else{
+    client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+}
+
+
+  var x = document.getElementById("array");
+
+    if (isSimulator) {
+        x.style.display = "none";
+  } else {
+    x.style.display = "block";
+  }
+
 
   client.on('welcome', function(socketId, listMoto) {
     joueur.id = socketId;
@@ -318,10 +344,41 @@ function timerRun() {
 *              JEU             *
 *******************************/
 
+/*
+      *              Add movement to the Buttons             *
+      **/
+
+      document.getElementById('north').addEventListener('click', function(e) {
+        client.emit('changeDir', joueur.id, 'top');
+//            console.log("this is sparta");
+      });
+
+
+      document.getElementById('south').addEventListener('click', function(e) {
+        client.emit('changeDir', joueur.id, 'bottom');
+//        console.log("this is sparta");
+      });
+
+
+      document.getElementById('west').addEventListener('click', function(e) {
+        client.emit('changeDir', joueur.id, 'bottom');
+//        console.log("this is sparta");
+      });
+
+      document.getElementById('east').addEventListener('click', function(e) {
+        client.emit('changeDir', joueur.id, 'right');
+//            console.log("this is sparta");
+      });
+
+      /*
+      *             End of Adding movement to the Buttons             *
+      **/
+
 function play() {
   console.log("play");
   document.querySelector('#info').style.display = "none";
   document.addEventListener('keydown', keydown);
+
 
   gameLoopId = setInterval(() => {
     if (joueur.status != 'waiting' && joueur.status != 'dead') {
@@ -341,7 +398,9 @@ function play() {
       }
       client.emit('updatePos', joueur, CANVAS_SIZE);
     }
-  }, 1500 / FRAME_RATE);
+  }, 1200 / FRAME_RATE);
+
+
 
   client.on('update', update);
   client.on('newDir', update);
