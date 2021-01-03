@@ -21,37 +21,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ac0b6290-4807-417b-b64a-5fdff1a98796" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/css/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/www/css/index.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Installation/InstallationCordova.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Installation/InstallationCordova.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/img/arrow.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/img/bleu.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/img/orange.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/img/rouge.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/img/vert.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/models/GameState.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/models/Player.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/savaWorkGood.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/save.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/save2.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/saveQuery.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/www/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/controllers/UserController.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/css/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/www/css/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/img/logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/www/img/logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/www/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/www/js/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/js/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/models/User.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/routes/route.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/server/constants.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/server/game.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/server/game.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/www/server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/www/server/serverUser.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,9 +96,7 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>

@@ -61,8 +61,6 @@ var gameLoopId;
 var canvas_ctx;
 
 
-
-
 /***************************************
  *       CONNEXION avec le SERVEUR      *
  ***************************************/
@@ -302,9 +300,9 @@ function displayPlayersList(joueurs) {
 
 }
 
-function addPlayersGame(joueurs) {
-
-}
+//function addPlayersGame(joueurs) {
+//
+//}
 // - Lance le compte à rebours et démarre la partie
 function launchGame(gameState){
   //displayPlayersList(joueurs);
@@ -504,7 +502,6 @@ function playerDead(gameState) {
       }
     }
     //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
-
   }
 
   let constant = 0;
@@ -580,7 +577,7 @@ function playerDead(gameState) {
     }
   }
 }
-
+}
 function checkCollision(gameState) {
   //var myPos = scalePos(joueur, gameState.moto_size, gameState.size);
   var myPos = joueur.pos;
@@ -663,4 +660,3 @@ function handleMove(event) {
 function finish(gameState) {
 
 }
-
