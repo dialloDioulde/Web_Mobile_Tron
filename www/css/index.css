@@ -211,9 +211,9 @@ main {
   font-size: 2.5vw;
 }
 /****************************
- *          array         *
+ *          fleches         *
  ***************************/
-#array{
+#fleches{
     z-index: 1;
     position: fixed;
     top: 0;
@@ -223,7 +223,8 @@ main {
     max-width: 960px;
     margin: 0 auto;
 }
-#array .hautBas{
+
+#fleches .hautBas{
     position: absolute;
     right: 10px;
     bottom: 10px;
@@ -232,7 +233,8 @@ main {
     justify-content: flex-end;
     align-items: center;
 }
-#array .droiteGauche{
+
+#fleches .droiteGauche{
     position: fixed;
     left: 10px;
     bottom: 10px;
@@ -241,28 +243,32 @@ main {
     justify-content: center;
     align-items: flex-start;
 }
-#array button{
+
+#fleches button{
     text-align: center;
     width: 40px;
     height: 40px;
-    font-size: 10vw;
+    font-size: 3vw;
     opacity: 0.5;
 }
-#array #south{
+
+#fleches #south{
     -webkit-transform: rotate(180deg);
     -moz-transform: rotate(180deg);
     -ms-transform: rotate(180deg);
     -o-transform: rotate(180deg);
     transform: rotate(180deg);
 }
-#array #east{
+
+#fleches #east{
     -webkit-transform: rotate(90deg);
     -moz-transform: rotate(90deg);
     -ms-transform: rotate(90deg);
     -o-transform: rotate(90deg);
     transform: rotate(90deg);
 }
-#array #west{
+
+#fleches #west{
     -webkit-transform: rotate(-90deg);
     -moz-transform: rotate(-90deg);
     -ms-transform: rotate(-90deg);

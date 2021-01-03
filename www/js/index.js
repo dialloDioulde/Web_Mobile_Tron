@@ -71,32 +71,27 @@ window.onload = function() {
     document.login.children.pseudo.value = joueur.pseudo;
   }
 
-let isSimulator;
+    let isSimulator;
 
-document.addEventListener("deviceready", onDeviceReady, false);
-function onDeviceReady() {
-//    console.log("device: ");
-    isSimulator = device.isVirtual;
-    // console.log(device.isVirtual);
-//    console.log(isSimulator);
-}
+    document.addEventListener("deviceready", onDeviceReady, false);
+    function onDeviceReady() {
+    //    console.log("device: ");
+        isSimulator = device.isVirtual;
+        // console.log(device.isVirtual);
+    //    console.log(isSimulator);
+    }
 
-if(isSimulator){
-    client = io.connect('http://10.0.2.2:3030/');
-}else{
-    client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
-}
-
-
-  var x = document.getElementById("array");
-
-    if (isSimulator) {
-        x.style.display = "none";
-  } else {
-    x.style.display = "block";
-  }
+    if(isSimulator){
+        client = io.connect('http://10.0.2.2:3030/');
+    }else{
+        client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+    }
 
 
+    if(!device.isVirtual){
+        document.getElementById("fleches").style.visibility = "hidden";
+        document.getElementById("fleches").style.display = "none";
+      }
   client.on('welcome', function(socketId, listMoto) {
     joueur.id = socketId;
     createMotoSelector(listMoto);
@@ -398,7 +393,7 @@ function play() {
       }
       client.emit('updatePos', joueur, CANVAS_SIZE);
     }
-  }, 1200 / FRAME_RATE);
+  }, 1000 / FRAME_RATE);
 
 
 
@@ -491,12 +486,16 @@ function playerDead(gameState) {
     clearInterval(gameLoopId);
   }
 
+  let constant = 0;
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id == joueur.id) {
-      if (gameState.players[i].status == "dead") {
-        document.querySelector('#info').innerHTML = "GAME OVER";
-        document.querySelector('#info').style.display = 'block';
-      }
+         constant++ ;
+    }
+    if(constant < 2){
+        if (gameState.players[i].status == "dead") {
+            document.querySelector('#info').innerHTML = "GAME OVER";
+            document.querySelector('#info').style.display = 'block';
+        }
     }
   }
 }
