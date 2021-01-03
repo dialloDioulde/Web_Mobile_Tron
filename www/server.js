@@ -1,7 +1,7 @@
 
 const io = require('socket.io')();
 
-// ************ Début : MongoDB  **************************************** //
+//************* Début : Connexion à MongoDB  *************************************************************************//
 const Player = require("./models/Player");
 const mongoose = require("mongoose");
 mongoose.connect('mongodb://127.0.0.1:27017/tron', {useNewUrlParser: true, useUnifiedTopology: true});
@@ -15,20 +15,8 @@ db.on('error', error => {
 db.once('open', () => {
   console.log('Database Connection works !');
 });
+//************* Fin : Connexion à MongoDB  ***************************************************************************//
 
-// ************ Fin : MongoDB  ******************************************* //
-
-// ************ Début : Déclaration des Variables ************************ //
-let playerData = {};
-let playerDataGame = {};
-let verifyDead = false;
-let gameStart = '';
-let gameEnd = '';
-let gameEndWinner = '';
-let playerScore = 0;
-let pl_score = 0;
-let pl_score_winner = 0;
-// ************ Fin : Déclaration des Variables ************************** //
 
 var game = {
   size: {width: 100, height: 100},
@@ -64,6 +52,37 @@ io.on('connection', socket => {
   socket.on('updatePos', move);
   socket.on('changeDir', newDir);
   socket.on('collision', collide);
+
+  //************************ Début : Enregistrement Des Statistiques Du Jeu dans la BDD ******************************//
+  // GAGNANT
+  socket.on('winnerData', function (data) {
+    if(data.status === "winner" && data.lose === "No" && data.win === "Winner"){
+      Player.findOneAndUpdate({name: data.pseudo}, {status: "winner", score: data.score}, function(err, pl_data){
+        if (err){
+          console.log("errr",err);
+        }else{
+          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " WINNER " + pl_data.score + "" );
+        }
+      });
+      console.log(data);
+    }
+  });
+  //******************************************************************************************************************//
+  // PERDANT(S)
+  socket.on('looserData', function (data) {
+    if(data.status === "dead" && data.lose === "Looser" && data.win === "No"){
+      Player.findOneAndUpdate({name: data.pseudo}, {status: "dead", score: data.score}, function(err, pl_data){
+        if (err){
+          console.log("errr",err);
+        }else{
+          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " LOOSER " + pl_data.score + "" );
+        }
+      });
+      console.log(data);
+    }
+  });
+  //************************ Fin : Enregistrement Des Statistiques Du Jeu dans la BDD ********************************//
+
   socket.on('disconnect', function() {
     console.log("disconnect");
     console.log(socket.id);
@@ -150,7 +169,6 @@ function init(callback) {
     game.playing = true;
     game.nbPlayers_alive = game.players.length;
     console.log(game.players);
-    gameStart = new Date().getTime() / 1000;
   }
 }
 
@@ -262,72 +280,6 @@ function collide(playerID) {
     io.sockets.emit('finish', game);
   }
   io.sockets.emit('collide', game);
-
-  // ************** Début :  Mise à Jour du Statut (dead) ********************************************************** //
-  if(verifyDead){
-    gameEnd = new Date().getTime() / 1000;
-    pl_score = gameEnd - gameStart;
-    Player.findOneAndUpdate({loginID: playerID}, {status: "dead", score: pl_score}, function(err, pl_data){
-      if (err){
-        console.log("errr",err);
-      }else{
-        console.log(" Le Joueur : " + pl_data.name + " est Mort " + " avec " + pl_data.score + " points !" );
-      }
-    });
-  }
-  // ************** Fin :  Mise à Jour du Statut (dead) ************************************************************* //
-
-  if (game.nbPlayers_alive == 1){
-    // ************** Début : Score du GAGNANT  ********************************************************************* //
-    gameEndWinner = new Date().getTime() / 1000;
-    pl_score_winner = (gameEndWinner - gameStart) * 2;
-    Player.findOneAndUpdate({status: "living"}, { score: pl_score_winner}, function(err, pl_data){
-      if (err){
-        console.log("errr",err);
-      }else{
-        console.log(" Le Joueur Gagnant est : " + pl_data.name + " avec " + pl_data.score + " points !" );
-      }
-    });
-    // ************** Fin :  Score du GAGNANT  ********************************************************************** //
-
-    // ************** Début : Tableau de Résultats ****************************************************************** //
-    Player.find(function (err, playersList) {
-      if (err) {
-        return console.error(err);
-      }
-      playersList.forEach(player_data => {
-        playerData = {
-          "id": player_data._id, "loginID": player_data.loginID, "pseudo": player_data.name,
-          "status": player_data.status, "moto": player_data.motoColor, "score": player_data.score
-        };
-        console.log(playerData.id, playerData.loginID, playerData.pseudo, playerData.moto, playerData.status, playerData.score + " Résultats");
-        //io.emit('dataGame', playerData.id, playerData.loginID, playerData.pseudo, playerData.moto, playerData.status, playerData.score);
-        io.emit('player_id', playerData.id);
-        io.emit('player_login_id', playerData.loginID);
-        io.emit('player_pseudo', playerData.pseudo);
-        io.emit('player_moto', playerData.moto);
-        io.emit('player_status', playerData.status);
-        io.emit('player_score', playerData.score);
-        io.emit('stopGame');
-      })
-    });
-    // ************** Fin : Tableau de Résultats  ******************************************************************* //
-
-    //****************************************************************************************************************//
-    /*let count_pl_dead = 0;
-    for (var i = 0; i < game.players.length; i++){
-      if(game.players[i].status === "dead"){
-        count_pl_dead = count_pl_dead + 1;
-      }
-      if(count_pl_dead === game.players.length - 1 ){
-        io.emit('stopGame');
-      }
-    }
-
-     */
-    //****************************************************************************************************************//
-  }
-
 }
 
 io.listen(3000);

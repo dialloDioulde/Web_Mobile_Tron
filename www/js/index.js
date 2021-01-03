@@ -52,6 +52,7 @@ let gameData = [];
 let test = '';
 let dataToDisplay = {};
 let loopVerification = false;
+let gameStart = null;
 var motos_available = [];
 
 var slide_index;
@@ -63,8 +64,8 @@ var canvas_ctx;
 
 
 /***************************************
-*       CONNEXION avec le SERVEUR      *
-***************************************/
+ *       CONNEXION avec le SERVEUR      *
+ ***************************************/
 window.onload = function() {
   if (localStorage.pseudo) {
     joueur.pseudo = localStorage.pseudo;
@@ -99,8 +100,8 @@ window.onload = function() {
 }
 
 /*******************************
-*             LOGIN            *
-*******************************/
+ *             LOGIN            *
+ *******************************/
 
 // - Ajoute dans le document HTML les éléments des motos disponibles
 function createMotoSelector(motos) {
@@ -113,23 +114,23 @@ function createMotoSelector(motos) {
 
       if (motos[i] == "bleu") {
         divSelector.innerHTML += "<div class='mySlides fade'>"+
-                                    "<img src='img/bleu.png' width='100%'>"+
-                                 "</div>";
+            "<img src='img/bleu.png' width='100%'>"+
+            "</div>";
       }
       if (motos[i] == "vert") {
         divSelector.innerHTML += "<div class='mySlides fade'>"+
-                                    "<img src='img/vert.png' width='100%'>"+
-                                 "</div>";
+            "<img src='img/vert.png' width='100%'>"+
+            "</div>";
       }
       if (motos[i] == "orange") {
         divSelector.innerHTML += "<div class='mySlides fade'>"+
-                                    "<img src='img/orange.png' width='100%'>"+
-                                 "</div>";
+            "<img src='img/orange.png' width='100%'>"+
+            "</div>";
       }
       if (motos[i] == "rouge") {
         divSelector.innerHTML += "<div class='mySlides fade'>"+
-                                    "<img src='img/rouge.png' width='100%'>"+
-                                 "</div>";
+            "<img src='img/rouge.png' width='100%'>"+
+            "</div>";
       }
     }
     slide_index = 1;
@@ -137,8 +138,8 @@ function createMotoSelector(motos) {
   }
   else {
     divSelector.innerHTML = "<div style='text-align: center;'>"+
-                              "<h2>Plus de moto disponible</h2>"+
-                            "</div>";
+        "<h2>Plus de moto disponible</h2>"+
+        "</div>";
     document.querySelector('#loginBTN').disabled = true;
   }
 
@@ -160,10 +161,10 @@ function showSlides(n) {
   if (n > slides.length) {slide_index = 1}
   if (n < 1) {slide_index = slides.length}
   for (i = 0; i < slides.length; i++) {
-      slides[i].style.display = "none";
+    slides[i].style.display = "none";
   }
   for (i = 0; i < dots.length; i++) {
-      dots[i].className = dots[i].className.replace(" active", "");
+    dots[i].className = dots[i].className.replace(" active", "");
   }
   slides[slide_index-1].style.display = "block";
   dots[slide_index-1].className += " active";
@@ -206,8 +207,8 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
 });
 
 /************************************
-*           INITIALISATION          *
-************************************/
+ *           INITIALISATION          *
+ ************************************/
 // - Affiche l'air de jeu
 function initGame(data) {
   document.querySelector('.overlay').style.display = "none";
@@ -336,8 +337,8 @@ function timerRun() {
 }
 
 /*******************************
-*              JEU             *
-*******************************/
+ *              JEU             *
+ *******************************/
 
 /*
       *              Add movement to the Buttons             *
@@ -392,6 +393,7 @@ function play() {
           break;
       }
       client.emit('updatePos', joueur, CANVAS_SIZE);
+      gameStart = new Date().getTime() / 1000;
     }
   }, 1000 / FRAME_RATE);
 
@@ -399,55 +401,9 @@ function play() {
 
   client.on('update', update);
   client.on('newDir', update);
-  //************** Début : Récupération des Statistique du Jeu *******************************************************//
-  client.on('player_id', function (playerDataID) {
-    //gameData.push(playerDataID);
-    console.log(playerDataID + " id ");
-    getData(playerDataID);
-    let player_id = "player_id"
-    getDataDict(player_id,playerDataID);
-  });
-  client.on('player_login_id', function (playerDataLoginID) {
-    //gameData.push(playerDataLoginID);
-    console.log(playerDataLoginID + " loginID ");
-    getData(playerDataLoginID);
-    let player_loginID =" player_loginID";
-    getDataDict(player_loginID,playerDataLoginID);
-  });
-  client.on('player_pseudo', function (playerDataPseudo) {
-    //gameData.push(playerDataPseudo);
-    console.log(playerDataPseudo + " pseudo ");
-    getData(playerDataPseudo);
-    let player_pseudo = "player_pseudo";
-    getDataDict(player_pseudo,playerDataPseudo);
-  });
-  client.on('player_moto', function (playerDataMoto) {
-    //gameData.push(playerDataMoto);
-    console.log(playerDataMoto + " moto ");
-    getData(playerDataMoto);
-    let player_moto = "player_moto";
-    getDataDict(player_moto,playerDataMoto);
-  });
-  client.on('player_status', function (playerDataStatus) {
-    //gameData.push(playerDataStatus);
-    console.log(playerDataStatus + " statut ");
-    getData(playerDataStatus);
-    let player_status = "player_status";
-    getDataDict(player_status,playerDataStatus);
-  });
-  client.on('player_score', function (playerDataScore) {
-    //gameData.push(playerDataScore);
-    console.log(playerDataScore + " score ");
-    getData(playerDataScore);
-    let player_score = "player_score";
-    getDataDict(player_score,playerDataScore);
-    loopVerification = true;
-  });
-  //************** Fin : Récupération des Statistique du Jeu *********************************************************//
 
   //************** Début : Écoute des Evenements (Statistique du Jeu) ************************************************//
-  client.on('stopGame', getData);
-  client.on('stopGame', getDataDict);
+
   //************** Fin : Écoute des Evenements (Statistique du Jeu) **************************************************//
 }
 
@@ -481,9 +437,74 @@ function update(gameState) {
   client.on('collide', playerDead);
 }
 
+
 function playerDead(gameState) {
   if (gameState.nbPlayers_alive <= 1) {
     clearInterval(gameLoopId);
+    //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
+    for (var i = 0; i < gameState.players.length; i++) {
+      if (gameState.players[i].status !== "dead") {
+        let gameEndWinner = new Date().getTime() / 1000;
+        joueur.score = ((gameEndWinner - gameStart) * 50 + 100).toFixed(2);
+        joueur.win = "Winner";
+        joueur.lose = "No";
+        joueur.status = "winner";
+        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
+
+        document.querySelector('#info').innerHTML = "YOU WIN";
+        document.querySelector('#info').style.display = 'block';
+        document.getElementById("info").style.backgroundColor = 'white';
+
+
+        var newDiv0 = document.createElement("div");
+        newDiv0.id = 'resData_0';
+        var newDiv = document.createElement("div");
+        newDiv.id = 'resData';
+        var newDiv1 = document.createElement("div");
+        newDiv1.id = 'resData_1';
+        var newDiv2 = document.createElement("div");
+        newDiv2.id = 'resData_2';
+        var newDiv3 = document.createElement("div");
+        newDiv3.id = 'resData_3';
+
+
+        document.querySelector('#info').appendChild(newDiv0);
+        document.querySelector('#info').appendChild(newDiv);
+        document.querySelector('#info').appendChild(newDiv1);
+        document.querySelector('#info').appendChild(newDiv2);
+        document.querySelector('#info').appendChild(newDiv3);
+
+
+        var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
+        var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
+        var newContent_1 = document.createTextNode( " Status : " +  "  "  + joueur.status);
+        var newContent_2 = document.createTextNode( " Moto : " +  "  "  + joueur.moto);
+        var newContent_3 = document.createTextNode( " You are the new Great King of the STATE ! ");
+
+
+        newDiv0.appendChild(newContent_0);
+        newDiv.appendChild(newContent);
+        newDiv1.appendChild(newContent_1);
+        newDiv2.appendChild(newContent_2);
+        newDiv3.appendChild(newContent_3);
+
+
+        document.querySelector('#resData_0').style.display = 'block';
+        document.querySelector('#resData').style.display = 'block';
+        document.querySelector('#resData_1').style.display = 'block';
+        document.querySelector('#resData_2').style.display = 'block';
+        document.querySelector('#resData_3').style.display = 'block';
+        document.getElementById("resData_0").style.backgroundColor = 'white';
+        document.getElementById("resData").style.backgroundColor = 'white';
+        document.getElementById("resData_1").style.backgroundColor = 'white';
+        document.getElementById("resData_2").style.backgroundColor = 'white';
+        document.getElementById("resData_3").style.backgroundColor = 'white';
+
+        client.emit('winnerData', joueur);
+      }
+    }
+    //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
+
   }
 
   let constant = 0;
@@ -496,6 +517,66 @@ function playerDead(gameState) {
             document.querySelector('#info').innerHTML = "GAME OVER";
             document.querySelector('#info').style.display = 'block';
         }
+    if (gameState.players[i].id === joueur.id) {
+      if (gameState.players[i].status === "dead") {
+        //********************** Début : Affichage Des Résultats Du JEU (PERDANT) ************************************//
+        joueur.status = "dead";
+        let gameEnd = new Date().getTime() / 1000;
+        joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
+        joueur.win = "No";
+        joueur.lose = "Looser";
+        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
+
+        document.querySelector('#info').innerHTML = "GAME OVER";
+        document.querySelector('#info').style.display = 'block';
+        document.getElementById("info").style.backgroundColor = 'white';
+
+        var newDiv0 = document.createElement("div");
+        newDiv0.id = 'resData_0';
+        var newDiv = document.createElement("div");
+        newDiv.id = 'resData';
+        var newDiv1 = document.createElement("div");
+        newDiv1.id = 'resData_1';
+        var newDiv2 = document.createElement("div");
+        newDiv2.id = 'resData_2';
+        var newDiv3 = document.createElement("div");
+        newDiv3.id = 'resData_3';
+
+        document.querySelector('#info').appendChild(newDiv0);
+        document.querySelector('#info').appendChild(newDiv);
+        document.querySelector('#info').appendChild(newDiv1);
+        document.querySelector('#info').appendChild(newDiv2);
+        document.querySelector('#info').appendChild(newDiv3);
+
+        var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
+        var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
+        var newContent_1 = document.createTextNode( " Status : " +  "  "  + joueur.status);
+        var newContent_2 = document.createTextNode( " Moto : " +  "  "  + joueur.moto);
+        var newContent_3 = document.createTextNode( " You won't have the crepes this Night ! Oups ! ");
+
+
+        newDiv0.appendChild(newContent_0);
+        newDiv.appendChild(newContent);
+        newDiv1.appendChild(newContent_1);
+        newDiv2.appendChild(newContent_2);
+        newDiv3.appendChild(newContent_3);
+
+        document.querySelector('#resData_0').style.display = 'block';
+        document.querySelector('#resData').style.display = 'block';
+        document.querySelector('#resData_1').style.display = 'block';
+        document.querySelector('#resData_2').style.display = 'block';
+        document.querySelector('#resData_3').style.display = 'block';
+        document.getElementById("resData_0").style.backgroundColor = 'white';
+        document.getElementById("resData").style.backgroundColor = 'white';
+        document.getElementById("resData_1").style.backgroundColor = 'white';
+        document.getElementById("resData_2").style.backgroundColor = 'white';
+        document.getElementById("resData_3").style.backgroundColor = 'white';
+
+        client.emit('looserData', joueur);
+
+        //********************** Fin : Affichage Des Résultats Du JEU (PERDANT) **************************************//
+
+      }
     }
   }
 }
@@ -582,90 +663,4 @@ function handleMove(event) {
 function finish(gameState) {
 
 }
-
-//************** Début : Affichage des Statistique du Jeu ************************************************************//
-let pl_data_to_display = {};
-function getDataDict(label,pl_data) {
-  if(pl_data !== null && pl_data !== undefined) {
-    // Début : Récupération et Prépration des Données
-    dataToDisplay[label] = pl_data;
-    console.log(JSON.stringify(dataToDisplay) + " C'est moi Goundouba !");
-    pl_data_to_display = JSON.stringify(dataToDisplay);
-    console.log(JSON.parse(pl_data_to_display));
-    // Fin :  Récupération et Prépration des Données
-
-    // Début : Trie des Données pour l'Affichage
-    Object.entries(dataToDisplay).forEach(([key, val]) => {
-      if(val !== null && val !== undefined && loopVerification === true) {
-        if (key === 'player_pseudo' || key === 'player_score') {
-          console.log(key + ' ' + val);
-
-          // Début :  Mise en Place du HTML pour l'affichage
-          var newDiv = document.createElement("div");
-          newDiv.id = 'resData';
-          document.querySelector('#info').appendChild(newDiv);
-
-          var newContent = document.createTextNode('');
-          if (key === 'player_pseudo') {
-            newContent = document.createTextNode( " Joueur : " +  "  "  + val);
-          }else if (key === 'player_score') {
-            newContent = document.createTextNode( " Score : " +  "  "  + val);
-          }
-
-          // ajoute le nœud texte au nouveau div créé
-          newDiv.appendChild(newContent);
-
-
-          document.querySelector('#resData').innerHTML = " Test Des Statistiques ! ";
-          document.querySelector('#resData').style.display = 'block';
-          // Fin :  Mise en Place du HTML pour l'affichage
-        }
-      }
-    });
-    // Fin : Trie des Données pour l'Affichage
-
-  }
-
-}
-//************** Fin : Affichage des Statistique du Jeu **************************************************************//
-
-
-//********************************* Début : Récupération des Données depuis le Serveur *******************************//
-function getData(pl_data) {
-  if(pl_data !== null && pl_data !== undefined && !gameData.includes(pl_data)) {
-    gameData.push(pl_data);
-  }
-
-  /*
-  var newDiv = document.createElement("div");
-  newDiv.id = 'resData';
-  document.querySelector('#info').appendChild(newDiv);
-
-  if(pl_data !== null && pl_data !== undefined && !gameData.includes(pl_data)) {
-    gameData.push(pl_data);
-  }
-  console.log(gameData);
-  var newContent = document.createTextNode('');
-  for (let i = 1; i <= gameData.length; i++) {
-    if(gameData[i] !== null && gameData[i] !== undefined) {
-      console.log(gameData[i] + " Je suis là ! ");
-      newContent = document.createTextNode(gameData[i]);
-    }
-  }
-  // ajoute le nœud texte au nouveau div créé
-  newDiv.appendChild(newContent);
-  //let data_table = '<table>';
-  //data_table += '<tr><td>' + pl_data + '</td></tr>';
-  //data_table += '</table>';
-  //document.querySelector('#info').innerHTML += data_table;
-
-  document.querySelector('#resData').innerHTML = " Test Des Statistiques ! ";
-  document.querySelector('#resData').style.display = 'block';
-
-   */
-
-}
-//*********************************** Fin : Récupération des Données depuis le Serveur *******************************//
-
-
 
