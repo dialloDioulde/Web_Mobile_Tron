@@ -17,6 +17,10 @@ db.once('open', () => {
 });
 //************* Fin : Connexion à MongoDB  ***************************************************************************//
 
+//let roomName = makeid(5);
+//const gameRooms = {};
+const numberPlayersStart = Math.floor(Math.random() * Math.floor(2)) + 1;
+
 
 var game = {
   size: {width: 100, height: 100},
@@ -39,23 +43,26 @@ var game = {
   ],
   initial_directions: ["bottom", "top", "right", "left"],
   playing: false,
-  nbPlayers_alive: 0
+  gameOver: false,
+  nbPlayers_alive: 0,
+  numberPlayersStart: numberPlayersStart
 };
 
 io.on('connection', socket => {
     console.log("New connection:", socket.id);
     socket.emit('welcome', socket.id, game.motos_available);
 
+//    gameRooms[socket.id] = roomName;
 //ROOMS
 //    let roomName = makeid(5);
-//    clientRooms[client.id] = roomName;
-//    client.emit('gameCode', roomName);
+//    gameRooms[socket.id] = roomName;
+//    socket.emit('gameCode', roomName);
 //
 //    state[roomName] = initGame();
 //
-//    client.join(roomName);
-//    client.number = 1;
-//    client.emit('initGame', 1);
+//    socket.join(roomName);
+//    socket.number = 1;
+//    socket.emit('initGame', 1);
 //END ROOMS
     socket.on('login', newPlayer);
     socket.on('ready', init);
@@ -92,6 +99,53 @@ io.on('connection', socket => {
     }
   });
   //************************ Fin : Enregistrement Des Statistiques Du Jeu dans la BDD ********************************//
+
+
+
+//************************************** Relaunch ****************************************************************************//
+socket.on('relaunch', function (game, callback) {
+//    var temp_game = game;
+
+//  if(game.gameOver && !game.playing){
+//    temp_game = game;
+//    game.size = {width: 100, height: 100};
+
+    for(var i = 0 ; i <  game.players.length; i ++){
+         game.players[i].pos = game.initial_positions[i];
+         game.players[i].dir = game.initial_directions[i];
+         game.players[i].path = game.initial_paths[i];
+         game.players[i].status = "ready";
+         game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
+           //console.log(joueur);
+         console.log(game.players[i].pos);
+    }
+    game.moto_size = {w: 7, l: 24};
+    game.step = 2;
+    game.path_length = 100;
+    game.initial_positions = [
+                  {x: 50, y: 2},
+                  {x: 50, y: 94.5},
+                  {x: 2, y: 50},
+                  {x: 94.5, y: 50}
+                ];
+    game.initial_paths = [
+                  [{x: 50, y: 2}],
+                  [{x: 50, y: 98}],
+                  [{x: 2, y: 50}],
+                  [{x: 98, y: 50}]
+                ];
+    game.initial_directions = ["bottom", "top", "right", "left"],
+    game.playing = false,
+    game.gameOver = false,
+    game.nbPlayers_alive = game.players.length;
+//    game = temp_game;
+//    callback(game);
+    io.sockets.emit('init', game);
+    callback(game);
+
+//   }
+});
+//******************************************************************************************************************//
 
   socket.on('disconnect', function() {
     console.log("disconnect");
@@ -161,26 +215,37 @@ function newPlayer(joueur, callback) {
   // ************** Fin : Création d'un Joueur ********************************************************************** //
 
   game.motos_available.splice(game.motos_available.indexOf(joueur.moto), 1);
-  console.log(joueur);
-  console.log(game);
+  //console.log(joueur);
+  //console.log(game);
   callback(game);
+
+  //################
   io.sockets.emit('newPlayer', game);
+
 }
 
 
 function init(callback) {
-  if (game.players.length <= 1) {
+  if (game.players.length <= numberPlayersStart) {
     return callback("waitOther");
   }
   if (game.playing) {
-    return callback("waitPlay")
+    return callback("waitPlay");
   }
-  if (game.players.length > 1 && game.playing == false) {
+  if (game.players.length > numberPlayersStart && game.playing == false) {
     io.sockets.emit('init', game);
     game.playing = true;
     game.nbPlayers_alive = game.players.length;
-    console.log(game.players);
+//    console.log(game.players);
   }
+//  if(game.gameOver && game.playing){
+//        for(let i=0; i < game.players.length; i++){
+//              game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
+//              callback(game);
+//              io.sockets.emit('newPlayer', game);
+//        }
+//  }
+  //#shih ketu
 }
 
 function move(player, scale) {
@@ -289,8 +354,11 @@ function collide(playerID) {
   }
   if (game.nbPlayers_alive == 1) {
     io.sockets.emit('finish', game);
+    game.gameOver = true;
+    game.playing = false;
   }
   io.sockets.emit('collide', game);
+
 }
 
 io.listen(3000);

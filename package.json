@@ -34,6 +34,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.11.8",
     "morgan": "^1.10.0",
+    "reload": "^3.1.1",
     "socket.io": "^3.0.4"
   }
 }

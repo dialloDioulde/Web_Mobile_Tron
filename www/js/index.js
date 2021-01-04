@@ -30,7 +30,7 @@ function onDeviceReady() {
 
 /** Variables globales **/
 const FRAME_RATE = 10;
-const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
+const CANVAS_SIZE = (Math.min(innerWidth, innerHeight) - 20) * 0.9;
 const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
 const MOTO_SIZE = {w: 7, l: 23};
 
@@ -88,7 +88,6 @@ window.onload = function() {
     }else{
         client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     }
-
 
 
     client.on('welcome', function(socketId, listMoto) {
@@ -224,7 +223,7 @@ function initGame(data) {
   document.querySelector('#game').appendChild(boxDialog);
   client.emit('ready', function(str) {
     if (str == "waitOther") {
-      document.querySelector('#info').innerHTML = "En attente d'autres joueur";
+      document.querySelector('#info').innerHTML = "En attente " + data.numberPlayersStart + " d'autre(s) joueur(s)";
     }
     if (str == "waitPlay") {
       document.querySelector('#info').innerHTML = "En attente de la fin de partie";
@@ -309,7 +308,9 @@ function launchGame(gameState){
   //addPlayersGame(joueurs);
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id == joueur.id) {
-      console.log(gameState.players[i].pos);
+//      console.log(gameState.players[i].pos);
+      console.log(gameState.players[i].score);
+      console.log(gameState.players[i].pseudo);
       joueur.pos = scalePos(gameState.players[i], gameState.moto_size, gameState.size);
     }
   }
@@ -318,6 +319,7 @@ function launchGame(gameState){
   var timer = document.querySelector('#info');
   timer.innerHTML = "5";
   timerId = setInterval(timerRun, 1000);
+
 }
 
 // - Éxecute le compte à rebours
@@ -429,14 +431,19 @@ function update(gameState) {
       joueur.path = normalizePath;
       joueur.dir = players[i].dir;
     }
-  }
 
+//    document.getElementById("players").innerHTML(players[i].pseudo);
+//    document.getElementById("players").innerHTML(players[i].score);
+  }
   checkCollision(gameState);
   client.on('collide', playerDead);
 }
 
 
 function playerDead(gameState) {
+
+  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
+
   if (gameState.nbPlayers_alive <= 1) {
     clearInterval(gameLoopId);
     //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
@@ -499,6 +506,28 @@ function playerDead(gameState) {
         document.getElementById("resData_3").style.backgroundColor = 'white';
 
         client.emit('winnerData', joueur);
+
+//        client.on('replay', gameState);
+        if(gameState.gameOver){
+             setTimeout(function() {
+                document.getElementById('info').style.display = 'none';
+             }, 3000);
+
+             setTimeout(function() {
+                 client.emit('relaunch', gameState, function(res) {
+                       initGame(res);
+                       drawMoto(res);
+                      for(var i = 0; i < gameState.players.length; i ++) {
+                          if (gameState.players[i].id == joueur.id)
+                           {
+                               joueur = gameState.players[i];
+                           }
+                      }
+                 });
+             }, 4000);
+        }
+
+
       }
     }
     //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
@@ -536,6 +565,10 @@ function playerDead(gameState) {
         document.querySelector('#info').appendChild(newDiv1);
         document.querySelector('#info').appendChild(newDiv2);
         document.querySelector('#info').appendChild(newDiv3);
+
+//        document.querySelector('#players').appendChild(newDiv0);
+//        document.querySelector('#players').appendChild(newDiv);
+
 
         var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
         var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
@@ -579,7 +612,14 @@ function checkCollision(gameState) {
   if (joueur.dir == "right") {
     myPos = {x: myPos.x+gameState.moto_size.l, y: myPos.y};
   }
-  console.log(myPos);
+//  console.log(joueur.pseudo);
+//  console.log(myPos);
+    let gameNow = new Date().getTime() / 1000;
+    joueur.score = ((gameNow - gameStart) * 50 + 50).toFixed(2);
+    console.log(joueur.score);
+
+    document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " Score : " + joueur.score;
+
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id != joueur.id) {
       var normalizePath = scalePath(gameState.players[i].path, gameState.size);
@@ -609,7 +649,7 @@ function checkCollision(gameState) {
   for (var i = 0; i < joueur.path.length-1; i++) {
     if (Math.trunc(myPos.x) == Math.trunc(joueur.path[i].x) &&
         Math.trunc(myPos.y) == Math.trunc(joueur.path[i].y)) {
-      client.emit('collision', joueur.id);
+        client.emit('collision', joueur.id);
     }
   }
 }
