@@ -517,10 +517,10 @@ function playerDead(gameState) {
                  client.emit('relaunch', gameState, function(res) {
                        initGame(res);
                        drawMoto(res);
-                      for(var i = 0; i < gameState.players.length; i ++) {
-                          if (gameState.players[i].id == joueur.id)
+                      for(var i = 0; i < res.players.length; i ++) {
+                          if (res.players[i].id == joueur.id)
                            {
-                               joueur = gameState.players[i];
+                               joueur = res.players[i];
                            }
                       }
                  });

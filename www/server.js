@@ -119,29 +119,13 @@ socket.on('relaunch', function (game, callback) {
            //console.log(joueur);
          console.log(game.players[i].pos);
     }
-    game.moto_size = {w: 7, l: 24};
-    game.step = 2;
-    game.path_length = 100;
-    game.initial_positions = [
-                  {x: 50, y: 2},
-                  {x: 50, y: 94.5},
-                  {x: 2, y: 50},
-                  {x: 94.5, y: 50}
-                ];
-    game.initial_paths = [
-                  [{x: 50, y: 2}],
-                  [{x: 50, y: 98}],
-                  [{x: 2, y: 50}],
-                  [{x: 98, y: 50}]
-                ];
-    game.initial_directions = ["bottom", "top", "right", "left"],
-    game.playing = false,
-    game.gameOver = false,
+    game.playing = true;
+    game.gameOver = false;
     game.nbPlayers_alive = game.players.length;
 //    game = temp_game;
 //    callback(game);
-    io.sockets.emit('init', game);
-    callback(game);
+//    io.sockets.emit('init', game);
+    return callback(game);
 
 //   }
 });
