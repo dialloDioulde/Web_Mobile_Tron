@@ -81,7 +81,7 @@ io.on('connection', socket => {
           console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " WINNER " + pl_data.score + "" );
         }
       });
-      console.log(data);
+//      console.log(data);
     }
   });
   //******************************************************************************************************************//
@@ -95,7 +95,7 @@ io.on('connection', socket => {
           console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " LOOSER " + pl_data.score + "" );
         }
       });
-      console.log(data);
+//      console.log(data);
     }
   });
   //************************ Fin : Enregistrement Des Statistiques Du Jeu dans la BDD ********************************//
@@ -103,21 +103,32 @@ io.on('connection', socket => {
 
 
 //************************************** Relaunch ****************************************************************************//
-socket.on('relaunch', function (game, callback) {
+socket.on('relaunch', function () {
 //    var temp_game = game;
 
 //  if(game.gameOver && !game.playing){
 //    temp_game = game;
 //    game.size = {width: 100, height: 100};
-
-    for(var i = 0 ; i <  game.players.length; i ++){
+    game.initial_positions = [
+      {x: 50, y: 2},
+      {x: 50, y: 94.5},
+      {x: 2, y: 50},
+      {x: 94.5, y: 50}
+    ];
+    game.initial_paths= [
+      [{x: 50, y: 2}],
+      [{x: 50, y: 98}],
+      [{x: 2, y: 50}],
+      [{x: 98, y: 50}]
+    ];
+    for(var i = 0 ; i < game.players.length; i ++){
          game.players[i].pos = game.initial_positions[i];
          game.players[i].dir = game.initial_directions[i];
          game.players[i].path = game.initial_paths[i];
          game.players[i].status = "ready";
          game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
            //console.log(joueur);
-         console.log(game.players[i].pos);
+//         console.log(game.players[i].pos);
     }
     game.playing = true;
     game.gameOver = false;
@@ -125,7 +136,9 @@ socket.on('relaunch', function (game, callback) {
 //    game = temp_game;
 //    callback(game);
 //    io.sockets.emit('init', game);
-    return callback(game);
+//    console.log(game);
+    console.log("Relaunching");
+    io.sockets.emit('newGame', game);
 
 //   }
 });
@@ -154,7 +167,7 @@ socket.on('relaunch', function (game, callback) {
   });
 });
 
-function newPlayer(joueur, callback) {
+function newPlayer(joueur, callback) {//new param
   for (var i = 0; i < game.players.length; i++) {
     if (game.players[i].pseudo == joueur.pseudo) {
       console.log("pseudo-unavailable");
@@ -336,13 +349,7 @@ function collide(playerID) {
       verifyDead = true;
     }
   }
-  if (game.nbPlayers_alive == 1) {
-    io.sockets.emit('finish', game);
-    game.gameOver = true;
-    game.playing = false;
-  }
   io.sockets.emit('collide', game);
-
 }
 
 io.listen(3000);

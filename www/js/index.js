@@ -86,7 +86,7 @@ window.onload = function() {
     if(isSimulator){
         client = io.connect('http://10.0.2.2:3030/');
     }else{
-        client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+        client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     }
 
 
@@ -170,6 +170,7 @@ function showSlides(n) {
 // - Validation du formulaire et lancement du jeu si succès
 document.querySelector("#formLogin").addEventListener('submit', function(e) {
   console.log("login");
+  //ici
   event.preventDefault();
   joueur.pseudo = document.login.children.pseudo.value;
   console.log(document.login.children.pseudo.value);
@@ -190,7 +191,7 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
     joueur.color = COLORS.vert;
   }
 
-  client.emit('login', joueur, function(res) {
+  client.emit('login', joueur, function(res) { //ici
     if (res == "pseudo-unavailable") {
       console.log("echec");
       alert("Ce pseudo est déjà utilisé !");
@@ -231,7 +232,7 @@ function initGame(data) {
   });
 
   client.on('init', launchGame);
-  client.on('finish', finish);
+  client.on('newGame', newGame);
 }
 
 // - Créer l'aire de jeu avec les bonnes dimensions
@@ -306,15 +307,17 @@ function addPlayersGame(joueurs) {
 function launchGame(gameState){
   //displayPlayersList(joueurs);
   //addPlayersGame(joueurs);
+  console.log("new Gamestate:");
+  console.log(gameState);
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id == joueur.id) {
 //      console.log(gameState.players[i].pos);
-      console.log(gameState.players[i].score);
-      console.log(gameState.players[i].pseudo);
+//      console.log(gameState.players[i].score);
+//      console.log(gameState.players[i].pseudo);
       joueur.pos = scalePos(gameState.players[i], gameState.moto_size, gameState.size);
     }
   }
-  console.log(joueur.pos);
+//  console.log(joueur.pos);
 
   var timer = document.querySelector('#info');
   timer.innerHTML = "5";
@@ -394,13 +397,16 @@ function play() {
           joueur.pos.x += 24;
           break;
       }
+      //gamer score =
       client.emit('updatePos', joueur, CANVAS_SIZE);
       gameStart = new Date().getTime() / 1000;
     }
   }, 1500 / FRAME_RATE);
 
+
   client.on('update', update);
   client.on('newDir', update);
+  client.on('collide', playerDead);
 
   //************** Début : Écoute des Evenements (Statistique du Jeu) ************************************************//
 
@@ -436,15 +442,15 @@ function update(gameState) {
 //    document.getElementById("players").innerHTML(players[i].score);
   }
   checkCollision(gameState);
-  client.on('collide', playerDead);
 }
 
 
 function playerDead(gameState) {
 
-  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
+//  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Loser ! ");
 
   if (gameState.nbPlayers_alive <= 1) {
+    console.log("Game finished");
     clearInterval(gameLoopId);
     //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
     for (var i = 0; i < gameState.players.length; i++) {
@@ -454,7 +460,7 @@ function playerDead(gameState) {
         joueur.win = "Winner";
         joueur.lose = "No";
         joueur.status = "winner";
-        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
+//        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
 
         document.querySelector('#info').innerHTML = "YOU WIN";
         document.querySelector('#info').style.display = 'block';
@@ -507,31 +513,18 @@ function playerDead(gameState) {
 
         client.emit('winnerData', joueur);
 
-//        client.on('replay', gameState);
-        if(gameState.gameOver){
-             setTimeout(function() {
-                document.getElementById('info').style.display = 'none';
-             }, 3000);
-
-             setTimeout(function() {
-                 client.emit('relaunch', gameState, function(res) {
-                       initGame(res);
-                       drawMoto(res);
-                      for(var i = 0; i < res.players.length; i ++) {
-                          if (res.players[i].id == joueur.id)
-                           {
-                               joueur = res.players[i];
-                           }
-                      }
-                 });
-             }, 4000);
-        }
-
-
       }
     }
     //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
-
+    var newDiv4 = document.createElement("div");
+    newDiv4.id = 'resData_4';
+    document.querySelector('#info').appendChild(newDiv4);
+    var newContent_4 = document.createElement("BUTTON");
+    newContent_4.innerHTML = "Play again"
+    newContent_4.onclick = function() { client.emit('relaunch'); }
+    newDiv4.appendChild(newContent_4);
+    document.querySelector('#resData_4').style.display = 'block';
+    document.querySelector('#resData_4').style.backgroundColor = 'white';
   }
 
   for (var i = 0; i < gameState.players.length; i++) {
@@ -543,7 +536,7 @@ function playerDead(gameState) {
         joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
         joueur.win = "No";
         joueur.lose = "Looser";
-        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
+//        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
 
         document.querySelector('#info').innerHTML = "GAME OVER";
         document.querySelector('#info').style.display = 'block';
@@ -616,7 +609,7 @@ function checkCollision(gameState) {
 //  console.log(myPos);
     let gameNow = new Date().getTime() / 1000;
     joueur.score = ((gameNow - gameStart) * 50 + 50).toFixed(2);
-    console.log(joueur.score);
+//    console.log(joueur.score);
 
     document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " Score : " + joueur.score;
 
@@ -683,14 +676,28 @@ function keydown(event){
 }
 
 function handleMove(event) {
-  console.log(event.touches);
+//  console.log(event.touches);
   var touches = event.touches;
-  console.log(touches[0].clientX);
-  console.log(touches[0].clientY);
+//  console.log(touches[0].clientX);
+//  console.log(touches[0].clientY);
 }
 
-function finish(gameState) {
+function newGame(gameState) {
+    console.log("Restarting game");
+    setTimeout(function() {
+//        document.getElementById('info').style.display = 'none';
+    document.getElementById('info').innerHTML = "";
+    }, 500);
 
+    setTimeout(function() {
+        for(var i = 0; i < gameState.players.length; i ++) {
+            if (gameState.players[i].id == joueur.id)
+            {
+               joueur = gameState.players[i];
+            }
+        }
+        launchGame(gameState);
+    }, 500);
 }
 
 
