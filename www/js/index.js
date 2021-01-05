@@ -46,13 +46,17 @@ var joueur = {
   status: "ready",
   score: 0,
   win: 0,
-  lose: 0
+  lose: 0,
+  nbPlayers: 0
 };
+
 let gameData = [];
 let test = '';
 let dataToDisplay = {};
 let loopVerification = false;
 let gameStart = null;
+
+var nbPlayers =  0;
 var motos_available = [];
 
 var slide_index;
@@ -65,10 +69,12 @@ var canvas_ctx;
  *       CONNEXION avec le SERVEUR      *
  ***************************************/
 window.onload = function() {
-  if (localStorage.pseudo) {
-    joueur.pseudo = localStorage.pseudo;
-    document.login.children.pseudo.value = joueur.pseudo;
-  }
+    if (localStorage.pseudo) {
+        joueur.pseudo = localStorage.pseudo;
+        document.login.children.pseudo.value = joueur.pseudo;
+    }
+
+    /************ Emulator *************/
     let isSimulator;
 
     document.addEventListener("deviceready", onDeviceReady, false);
@@ -77,6 +83,8 @@ window.onload = function() {
         isSimulator = device.isVirtual;
         // console.log(device.isVirtual);
     //    console.log(isSimulator);
+
+    //Remove buttons for the web version
 //        if(!isSimulator){
 ////            document.getElementById("fleches").style.visibility = "hidden";
 //            document.getElementById("fleches").style.display = "none";
@@ -86,9 +94,8 @@ window.onload = function() {
     if(isSimulator){
         client = io.connect('http://10.0.2.2:3030/');
     }else{
-        client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+        client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     }
-
 
     client.on('welcome', function(socketId, listMoto) {
     joueur.id = socketId;
@@ -102,44 +109,67 @@ window.onload = function() {
 
 // - Ajoute dans le document HTML les éléments des motos disponibles
 function createMotoSelector(motos) {
-  motos_available = motos
-  let divSelector = document.querySelector('#motoSelector');
-  let divDots = document.querySelector('#dots');
-  if (motos.length > 0) {
-    for (var i = 0; i < motos.length; i++) {
-      dots.innerHTML += "<span class='dot' onclick='currentSlide("+(i+1)+")'></span>";
+    /***********************/
+    client.emit('nbPlayers', joueur, function(res) {
+        if(res.numberPlayersStart != 0){
+            joueur.nbPlayers = res.numberPlayersStart;
+            nbPlayers = res.numberPlayersStart;
+            console.log(nbPlayers);
+            console.log("nbPlayers");
+        }
+    });
+    setTimeout(function() {
+        printGlobalIdvalue();
+    }, 500);
 
-      if (motos[i] == "bleu") {
-        divSelector.innerHTML += "<div class='mySlides fade'>"+
-            "<img src='img/bleu.png' width='100%'>"+
-            "</div>";
-      }
-      if (motos[i] == "vert") {
-        divSelector.innerHTML += "<div class='mySlides fade'>"+
-            "<img src='img/vert.png' width='100%'>"+
-            "</div>";
-      }
-      if (motos[i] == "orange") {
-        divSelector.innerHTML += "<div class='mySlides fade'>"+
-            "<img src='img/orange.png' width='100%'>"+
-            "</div>";
-      }
-      if (motos[i] == "rouge") {
-        divSelector.innerHTML += "<div class='mySlides fade'>"+
-            "<img src='img/rouge.png' width='100%'>"+
-            "</div>";
-      }
+    /***********************/
+
+    /***********************/
+    motos_available = motos
+    let divSelector = document.querySelector('#motoSelector');
+    let divDots = document.querySelector('#dots');
+
+    if (motos.length > 0) {
+        for (var i = 0; i < motos.length; i++) {
+          dots.innerHTML += "<span class='dot' onclick='currentSlide("+(i+1)+")'></span>";
+          if (motos[i] == "bleu") {
+            divSelector.innerHTML += "<div class='mySlides fade'>"+
+                "<img src='img/bleu.png' width='100%'>"+
+                "</div>";
+          }
+          if (motos[i] == "vert") {
+            divSelector.innerHTML += "<div class='mySlides fade'>"+
+                "<img src='img/vert.png' width='100%'>"+
+                "</div>";
+          }
+          if (motos[i] == "orange") {
+            divSelector.innerHTML += "<div class='mySlides fade'>"+
+                "<img src='img/orange.png' width='100%'>"+
+                "</div>";
+          }
+          if (motos[i] == "rouge") {
+            divSelector.innerHTML += "<div class='mySlides fade'>"+
+                "<img src='img/rouge.png' width='100%'>"+
+                "</div>";
+          }
+        }
+        slide_index = 1;
+        showSlides(slide_index);
     }
-    slide_index = 1;
-    showSlides(slide_index);
-  }
-  else {
-    divSelector.innerHTML = "<div style='text-align: center;'>"+
-        "<h2>Plus de moto disponible</h2>"+
-        "</div>";
-    document.querySelector('#loginBTN').disabled = true;
-  }
+    else {
+        divSelector.innerHTML = "<div style='text-align: center;'>"+
+            "<h2>Plus de moto disponible</h2>"+
+            "</div>";
+        document.querySelector('#loginBTN').disabled = true;
+    }
 
+}
+
+function printGlobalIdvalue() {
+//    alert(nbPlayers);  // it also displays 2
+    if(nbPlayers != 0){
+        document.getElementById("radiobuttons").style.display = "none";
+    }
 }
 
 // - Permet la navigation entre les différentes motos disponibles
@@ -169,14 +199,19 @@ function showSlides(n) {
 
 // - Validation du formulaire et lancement du jeu si succès
 document.querySelector("#formLogin").addEventListener('submit', function(e) {
-  console.log("login");
+//  console.log("login");
   //ici
-  event.preventDefault();
-  joueur.pseudo = document.login.children.pseudo.value;
-  console.log(document.login.children.pseudo.value);
+    event.preventDefault();
+    joueur.pseudo = document.login.children.pseudo.value;
 
-  joueur.moto = motos_available[slide_index-1];
-  console.log(motos_available[slide_index-1]);
+    if(nbPlayers == 0){
+       nbPlayers = document.login.elements['nbPlayers'].value;
+       joueur.nbPlayers = nbPlayers;
+    }
+
+//    console.log('nb players: ' + nbPlayers)
+    joueur.moto = motos_available[slide_index-1];
+//  console.log(motos_available[slide_index-1]);
 
   if (joueur.moto == "bleu") {
     joueur.color = COLORS.bleu;
@@ -196,11 +231,17 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
       console.log("echec");
       alert("Ce pseudo est déjà utilisé !");
     }
+
     else {
       console.log("valide");
       localStorage.pseudo = joueur.pseudo;
       initGame(res);
     }
+
+//    if(res.numberPlayersStart != 0){
+//        joueur.nbPlayers = res.numberPlayersStart;
+//        nbPlayers = res.numberPlayersStart;
+//    }
   });
 });
 
@@ -307,7 +348,7 @@ function addPlayersGame(joueurs) {
 function launchGame(gameState){
   //displayPlayersList(joueurs);
   //addPlayersGame(joueurs);
-  console.log("new Gamestate:");
+  console.log("new Gamestate: ");
   console.log(gameState);
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id == joueur.id) {
@@ -344,9 +385,9 @@ function timerRun() {
  *******************************/
 
 
-/*
-      *              Add movement to the Buttons             *
-      **/
+      /*************************************************************
+      *              Add movement to the Buttons                   *
+      **************************************************************/
 
       document.getElementById('north').addEventListener('click', function(e) {
         client.emit('changeDir', joueur.id, 'top');
@@ -370,9 +411,9 @@ function timerRun() {
 //            console.log("this is sparta");
       });
 
-      /*
-      *             End of Adding movement to the Buttons             *
-      **/
+      /*************************************************************
+      *             End of Adding movement to the Buttons           *
+      **************************************************************/
 
 
 
@@ -397,7 +438,6 @@ function play() {
           joueur.pos.x += 24;
           break;
       }
-      //gamer score =
       client.emit('updatePos', joueur, CANVAS_SIZE);
       gameStart = new Date().getTime() / 1000;
     }
@@ -408,9 +448,6 @@ function play() {
   client.on('newDir', update);
   client.on('collide', playerDead);
 
-  //************** Début : Écoute des Evenements (Statistique du Jeu) ************************************************//
-
-  //************** Fin : Écoute des Evenements (Statistique du Jeu) **************************************************//
 }
 
 
@@ -436,10 +473,8 @@ function update(gameState) {
     if (players[i].id == joueur.id) {
       joueur.path = normalizePath;
       joueur.dir = players[i].dir;
+      joueur.score += 10;
     }
-
-//    document.getElementById("players").innerHTML(players[i].pseudo);
-//    document.getElementById("players").innerHTML(players[i].score);
   }
   checkCollision(gameState);
 }
@@ -455,10 +490,9 @@ function playerDead(gameState) {
     //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
     for (var i = 0; i < gameState.players.length; i++) {
       if (gameState.players[i].status !== "dead") {
-        let gameEndWinner = new Date().getTime() / 1000;
-        joueur.score = ((gameEndWinner - gameStart) * 50 + 100).toFixed(2);
-        joueur.win = "Winner";
-        joueur.lose = "No";
+//        let gameEndWinner = new Date().getTime() / 1000;
+//        joueur.score = ((gameEndWinner - gameStart) * 50 + 100).toFixed(2);
+        joueur.win += 1;
         joueur.status = "winner";
 //        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
 
@@ -532,10 +566,9 @@ function playerDead(gameState) {
       if (gameState.players[i].status === "dead") {
         //********************** Début : Affichage Des Résultats Du JEU (PERDANT) ************************************//
         joueur.status = "dead";
-        let gameEnd = new Date().getTime() / 1000;
-        joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
-        joueur.win = "No";
-        joueur.lose = "Looser";
+//        let gameEnd = new Date().getTime() / 1000;
+//        joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
+        joueur.lose += 1;
 //        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
 
         document.querySelector('#info').innerHTML = "GAME OVER";
@@ -558,10 +591,6 @@ function playerDead(gameState) {
         document.querySelector('#info').appendChild(newDiv1);
         document.querySelector('#info').appendChild(newDiv2);
         document.querySelector('#info').appendChild(newDiv3);
-
-//        document.querySelector('#players').appendChild(newDiv0);
-//        document.querySelector('#players').appendChild(newDiv);
-
 
         var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
         var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
@@ -607,11 +636,9 @@ function checkCollision(gameState) {
   }
 //  console.log(joueur.pseudo);
 //  console.log(myPos);
-    let gameNow = new Date().getTime() / 1000;
-    joueur.score = ((gameNow - gameStart) * 50 + 50).toFixed(2);
 //    console.log(joueur.score);
 
-    document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " Score : " + joueur.score;
+    document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " <br>Score : " + joueur.score + " <br>Wins: " + joueur.win;
 
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id != joueur.id) {
@@ -685,7 +712,6 @@ function handleMove(event) {
 function newGame(gameState) {
     console.log("Restarting game");
     setTimeout(function() {
-//        document.getElementById('info').style.display = 'none';
     document.getElementById('info').innerHTML = "";
     }, 500);
 

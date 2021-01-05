@@ -19,8 +19,8 @@ db.once('open', () => {
 
 //let roomName = makeid(5);
 //const gameRooms = {};
-const numberPlayersStart = Math.floor(Math.random() * Math.floor(2)) + 1;
-
+//const numberPlayersStart = Math.floor(Math.random() * Math.floor(2)) + 1;
+var numberPlayersStart = 0;
 
 var game = {
   size: {width: 100, height: 100},
@@ -69,11 +69,21 @@ io.on('connection', socket => {
     socket.on('updatePos', move);
     socket.on('changeDir', newDir);
     socket.on('collision', collide);
+    socket.on('nbPlayers', nbPlayers);
+
+
+
+
+
+function nbPlayers(joueur, callback) { //new param
+  return callback(game);
+//  io.sockets.emit('newPlayer', game);
+}
 
   //************************ Début : Enregistrement Des Statistiques Du Jeu dans la BDD ******************************//
   // GAGNANT
   socket.on('winnerData', function (data) {
-    if(data.status === "winner" && data.lose === "No" && data.win === "Winner"){
+    if(data.status === "winner"){
       Player.findOneAndUpdate({name: data.pseudo}, {status: "winner", score: data.score}, function(err, pl_data){
         if (err){
           console.log("errr",err);
@@ -87,12 +97,12 @@ io.on('connection', socket => {
   //******************************************************************************************************************//
   // PERDANT(S)
   socket.on('looserData', function (data) {
-    if(data.status === "dead" && data.lose === "Looser" && data.win === "No"){
+    if(data.status === "dead"){
       Player.findOneAndUpdate({name: data.pseudo}, {status: "dead", score: data.score}, function(err, pl_data){
         if (err){
           console.log("errr",err);
         }else{
-          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " LOOSER " + pl_data.score + "" );
+          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " LOSER " + pl_data.score + "" );
         }
       });
 //      console.log(data);
@@ -104,11 +114,7 @@ io.on('connection', socket => {
 
 //************************************** Relaunch ****************************************************************************//
 socket.on('relaunch', function () {
-//    var temp_game = game;
 
-//  if(game.gameOver && !game.playing){
-//    temp_game = game;
-//    game.size = {width: 100, height: 100};
     game.initial_positions = [
       {x: 50, y: 2},
       {x: 50, y: 94.5},
@@ -133,7 +139,6 @@ socket.on('relaunch', function () {
     game.playing = true;
     game.gameOver = false;
     game.nbPlayers_alive = game.players.length;
-//    game = temp_game;
 //    callback(game);
 //    io.sockets.emit('init', game);
 //    console.log(game);
@@ -142,7 +147,7 @@ socket.on('relaunch', function () {
 
 //   }
 });
-//******************************************************************************************************************//
+//****************************************** End Relaunch ************************************************************************//
 
   socket.on('disconnect', function() {
     console.log("disconnect");
@@ -167,7 +172,7 @@ socket.on('relaunch', function () {
   });
 });
 
-function newPlayer(joueur, callback) {//new param
+function newPlayer(joueur, callback) { //new param
   for (var i = 0; i < game.players.length; i++) {
     if (game.players[i].pseudo == joueur.pseudo) {
       console.log("pseudo-unavailable");
@@ -179,8 +184,13 @@ function newPlayer(joueur, callback) {//new param
   joueur.dir = game.initial_directions[game.players.length];
   joueur.path = game.initial_paths[game.players.length];
 
+  if(numberPlayersStart == 0){
+    numberPlayersStart = joueur.nbPlayers;
+    game.numberPlayersStart = numberPlayersStart;
+  }
+
   if (game.playing) {
-  //shto room ketu
+  // room
     joueur.status = "waiting";
   }
   game.players.push(joueur);
@@ -216,9 +226,7 @@ function newPlayer(joueur, callback) {//new param
   //console.log(game);
   callback(game);
 
-  //################
   io.sockets.emit('newPlayer', game);
-
 }
 
 
@@ -233,16 +241,7 @@ function init(callback) {
     io.sockets.emit('init', game);
     game.playing = true;
     game.nbPlayers_alive = game.players.length;
-//    console.log(game.players);
   }
-//  if(game.gameOver && game.playing){
-//        for(let i=0; i < game.players.length; i++){
-//              game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
-//              callback(game);
-//              io.sockets.emit('newPlayer', game);
-//        }
-//  }
-  //#shih ketu
 }
 
 function move(player, scale) {
