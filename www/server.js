@@ -21,6 +21,8 @@ db.once('open', () => {
 //const gameRooms = {};
 //const numberPlayersStart = Math.floor(Math.random() * Math.floor(2)) + 1;
 var numberPlayersStart = 0;
+var deadPlayers = [];
+
 
 var game = {
   size: {width: 100, height: 100},
@@ -70,9 +72,6 @@ io.on('connection', socket => {
     socket.on('changeDir', newDir);
     socket.on('collision', collide);
     socket.on('nbPlayers', nbPlayers);
-
-
-
 
 
 function nbPlayers(joueur, callback) { //new param
@@ -133,15 +132,12 @@ socket.on('relaunch', function () {
          game.players[i].path = game.initial_paths[i];
          game.players[i].status = "ready";
          game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
-           //console.log(joueur);
-//         console.log(game.players[i].pos);
+
     }
     game.playing = true;
     game.gameOver = false;
     game.nbPlayers_alive = game.players.length;
-//    callback(game);
-//    io.sockets.emit('init', game);
-//    console.log(game);
+
     console.log("Relaunching");
     io.sockets.emit('newGame', game);
 
@@ -329,25 +325,35 @@ function newDir(playerID, direction) {
 }
 
 function collide(playerID) {
+  var deadCount = 0;
   for (var i = 0; i < game.players.length; i++) {
-    if (game.players[i].id == playerID) {
-      game.players[i].status = "dead";
-      game.nbPlayers_alive--;
-      game.initial_positions = [
-          {x: 50, y: 2},
-          {x: 50, y: 94.5},
-          {x: 2, y: 50},
-          {x: 94.5, y: 50}
-      ];
-      game.initial_paths= [
-          [{x: 50, y: 2}],
-          [{x: 50, y: 98}],
-          [{x: 2, y: 50}],
-          [{x: 98, y: 50}]
-      ];
-      verifyDead = true;
-    }
-  }
+//      if(nbPlayersDead > deadCount){
+          if (game.players[i].id == playerID) {
+            console.log(deadPlayers);
+            console.log(deadPlayers.includes(game.players[i].id));
+            if(!deadPlayers.includes(game.players[i].id)){
+                  deadPlayers[deadCount] = game.players[i].id;
+                  deadCount++;
+                  game.players[i].status = "dead";
+                  game.nbPlayers_alive--;
+    //              nbPlayersDead++;
+    //              deadCount++;
+                  game.initial_positions = [
+                      {x: 50, y: 2},
+                      {x: 50, y: 94.5},
+                      {x: 2, y: 50},
+                      {x: 94.5, y: 50}
+                  ];
+                  game.initial_paths= [
+                      [{x: 50, y: 2}],
+                      [{x: 50, y: 98}],
+                      [{x: 2, y: 50}],
+                      [{x: 98, y: 50}]
+                  ];
+                  verifyDead = true;
+            }
+          }
+      }
   io.sockets.emit('collide', game);
 }
 

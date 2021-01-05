@@ -50,10 +50,10 @@ var joueur = {
   nbPlayers: 0
 };
 
-let gameData = [];
-let test = '';
-let dataToDisplay = {};
-let loopVerification = false;
+//let gameData = [];
+//let test = '';
+//let dataToDisplay = {};
+//let loopVerification = false;
 let gameStart = null;
 
 var nbPlayers =  0;
@@ -118,13 +118,11 @@ function createMotoSelector(motos) {
             console.log("nbPlayers");
         }
     });
+
     setTimeout(function() {
         printGlobalIdvalue();
     }, 500);
 
-    /***********************/
-
-    /***********************/
     motos_available = motos
     let divSelector = document.querySelector('#motoSelector');
     let divDots = document.querySelector('#dots');
@@ -337,13 +335,13 @@ function scalePath(path, scale) {
   return normalizePath;
 }
 
-function displayPlayersList(joueurs) {
+//function displayPlayersList(joueurs) {
+//
+//}
 
-}
-
-function addPlayersGame(joueurs) {
-
-}
+//function addPlayersGame(joueurs) {
+//
+//}
 // - Lance le compte à rebours et démarre la partie
 function launchGame(gameState){
   //displayPlayersList(joueurs);
@@ -385,36 +383,35 @@ function timerRun() {
  *******************************/
 
 
-      /*************************************************************
-      *              Add movement to the Buttons                   *
-      **************************************************************/
+/*************************************************************
+*              Add movement to the Buttons                   *
+**************************************************************/
 
-      document.getElementById('north').addEventListener('click', function(e) {
-        client.emit('changeDir', joueur.id, 'top');
+document.getElementById('north').addEventListener('click', function(e) {
+    client.emit('changeDir', joueur.id, 'top');
 //            console.log("this is sparta");
-      });
+});
 
 
-      document.getElementById('south').addEventListener('click', function(e) {
-        client.emit('changeDir', joueur.id, 'bottom');
+document.getElementById('south').addEventListener('click', function(e) {
+    client.emit('changeDir', joueur.id, 'bottom');
 //        console.log("this is sparta");
-      });
+});
 
 
-      document.getElementById('west').addEventListener('click', function(e) {
-        client.emit('changeDir', joueur.id, 'left');
+document.getElementById('west').addEventListener('click', function(e) {
+    client.emit('changeDir', joueur.id, 'left');
 //        console.log("this is sparta");
-      });
+});
 
-      document.getElementById('east').addEventListener('click', function(e) {
-        client.emit('changeDir', joueur.id, 'right');
+document.getElementById('east').addEventListener('click', function(e) {
+    client.emit('changeDir', joueur.id, 'right');
 //            console.log("this is sparta");
-      });
+});
 
-      /*************************************************************
-      *             End of Adding movement to the Buttons           *
-      **************************************************************/
-
+/*************************************************************
+*             End of Adding movement to the Buttons           *
+**************************************************************/
 
 
 function play() {
@@ -442,7 +439,6 @@ function play() {
       gameStart = new Date().getTime() / 1000;
     }
   }, 1500 / FRAME_RATE);
-
 
   client.on('update', update);
   client.on('newDir', update);
@@ -484,7 +480,8 @@ function playerDead(gameState) {
 
 //  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Loser ! ");
 
-  if (gameState.nbPlayers_alive <= 1) {
+  console.log(gameState.nbPlayers_alive);
+  if (gameState.nbPlayers_alive <= 1 && gameState.nbPlayers_alive > 0) {
     console.log("Game finished");
     clearInterval(gameLoopId);
     //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
@@ -492,7 +489,7 @@ function playerDead(gameState) {
       if (gameState.players[i].status !== "dead") {
 //        let gameEndWinner = new Date().getTime() / 1000;
 //        joueur.score = ((gameEndWinner - gameStart) * 50 + 100).toFixed(2);
-        joueur.win += 1;
+        joueur.win = joueur.win + 1;
         joueur.status = "winner";
 //        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
 
@@ -568,7 +565,7 @@ function playerDead(gameState) {
         joueur.status = "dead";
 //        let gameEnd = new Date().getTime() / 1000;
 //        joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
-        joueur.lose += 1;
+        joueur.lose = joueur.lose + 1;
 //        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
 
         document.querySelector('#info').innerHTML = "GAME OVER";
@@ -634,11 +631,6 @@ function checkCollision(gameState) {
   if (joueur.dir == "right") {
     myPos = {x: myPos.x+gameState.moto_size.l, y: myPos.y};
   }
-//  console.log(joueur.pseudo);
-//  console.log(myPos);
-//    console.log(joueur.score);
-
-    document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " <br>Score : " + joueur.score + " <br>Wins: " + joueur.win;
 
   for (var i = 0; i < gameState.players.length; i++) {
     if (gameState.players[i].id != joueur.id) {
@@ -672,6 +664,8 @@ function checkCollision(gameState) {
         client.emit('collision', joueur.id);
     }
   }
+  //DISPLAY SCORE
+  document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " <br>Score : " + joueur.score + " <br>Wins: " + joueur.win;
 }
 
 function keydown(event){
@@ -725,8 +719,4 @@ function newGame(gameState) {
         launchGame(gameState);
     }, 500);
 }
-
-
-
-
 
