@@ -59,6 +59,7 @@ Une fois le code téléchargé
 ```bash  
 cd Web_Mobile_Tron  
 npm install  
+cordova plugin add cordova-plugin-device
 ```  
   
 ## Lancement  
