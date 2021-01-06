@@ -94,13 +94,13 @@ window.onload = function() {
     if(isSimulator){
         client = io.connect('http://10.0.2.2:3030/');
     }else{
-        client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+        client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     }
 
     client.on('welcome', function(socketId, listMoto) {
-    joueur.id = socketId;
-    createMotoSelector(listMoto);
-  });
+        joueur.id = socketId;
+        createMotoSelector(listMoto);
+    });
 }
 
 /*******************************
@@ -436,7 +436,7 @@ function play() {
           break;
       }
       client.emit('updatePos', joueur, CANVAS_SIZE);
-      gameStart = new Date().getTime() / 1000;
+//      gameStart = new Date().getTime() / 1000;
     }
   }, 1500 / FRAME_RATE);
 
@@ -470,18 +470,20 @@ function update(gameState) {
       joueur.path = normalizePath;
       joueur.dir = players[i].dir;
       joueur.score += 10;
+      console.log(joueur.score);
     }
   }
-  checkCollision(gameState);
+  if(joueur.status != "dead" && gameState.nbPlayers_alive > 1){
+    checkCollision(gameState);
+  }
 }
 
 
 function playerDead(gameState) {
-
 //  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Loser ! ");
 
   console.log(gameState.nbPlayers_alive);
-  if (gameState.nbPlayers_alive <= 1 && gameState.nbPlayers_alive > 0) {
+  if (gameState.nbPlayers_alive == 1) {
     console.log("Game finished");
     clearInterval(gameLoopId);
     //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
@@ -624,6 +626,7 @@ function playerDead(gameState) {
 
 function checkCollision(gameState) {
   //var myPos = scalePos(joueur, gameState.moto_size, gameState.size);
+  console.log("check collision");
   var myPos = joueur.pos;
   if (joueur.dir == "bottom") {
     myPos = {x: myPos.x, y: myPos.y+gameState.moto_size.l};
@@ -705,6 +708,7 @@ function handleMove(event) {
 
 function newGame(gameState) {
     console.log("Restarting game");
+    console.log(gameState.nbPlayers_alive);
     setTimeout(function() {
     document.getElementById('info').innerHTML = "";
     }, 500);
