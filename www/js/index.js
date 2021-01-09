@@ -30,9 +30,9 @@ function onDeviceReady() {
 
 /** Variables globales **/
 const FRAME_RATE = 10;
-const CANVAS_SIZE = (Math.min(innerWidth, innerHeight) - 20) * 0.9;
-const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"}
-const MOTO_SIZE = {w: 7, l: 23};
+const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
+const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"};
+//const MOTO_SIZE = {w: 0, l: 0};
 
 var client;
 var joueur = {
@@ -46,19 +46,11 @@ var joueur = {
   status: "ready",
   score: 0,
   win: 0,
-  lose: 0,
-  nbPlayers: 0
+  lose: 0
 };
-
-//let gameData = [];
-//let test = '';
-//let dataToDisplay = {};
-//let loopVerification = false;
-let gameStart = null;
-
-var nbPlayers =  0;
+var gameId;
 var motos_available = [];
-
+var motos_size = {w: 0, l: 0};
 var slide_index;
 var timerId;
 var gameLoopId;
@@ -66,108 +58,156 @@ var canvas_ctx;
 
 
 /***************************************
- *       CONNEXION avec le SERVEUR      *
- ***************************************/
+*       CONNEXION avec le SERVEUR      *
+***************************************/
 window.onload = function() {
-    if (localStorage.pseudo) {
-        joueur.pseudo = localStorage.pseudo;
-        document.login.children.pseudo.value = joueur.pseudo;
-    }
+  if (localStorage.pseudo) {
+    joueur.pseudo = localStorage.pseudo;
+    document.login.children.pseudo.value = joueur.pseudo;
+  }
+  document.querySelector('#btnNew').addEventListener("click", createGame);
+  document.querySelector('#btnEnter').addEventListener("click", displayGames);
 
-    /************ Emulator *************/
-    let isSimulator;
+  // Wait for the deviceready event before using any of Cordova's device APIs.
+  // See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
+  document.addEventListener("deviceready", onDeviceReady, false);
 
-    document.addEventListener("deviceready", onDeviceReady, false);
-    function onDeviceReady() {
-    //    console.log("device: ");
-        isSimulator = device.isVirtual;
-        // console.log(device.isVirtual);
-    //    console.log(isSimulator);
-
-    //Remove buttons for the web version
-//        if(!isSimulator){
-////            document.getElementById("fleches").style.visibility = "hidden";
-//            document.getElementById("fleches").style.display = "none";
-//        }
-    }
-
-    if(isSimulator){
-        client = io.connect('http://10.0.2.2:3030/');
-    }else{
-        client = io('http://192.168.1.46:3000', {transports: ['websocket', 'polling', 'flashsocket']});
-    }
-
-    client.on('welcome', function(socketId, listMoto) {
-        joueur.id = socketId;
-        createMotoSelector(listMoto);
-    });
 }
 
+function onDeviceReady() {
+  console.log(device.platform);
+
+  if (device.isVirtual || device.platform != "browser") {
+    console.log("emulateur");
+    client = io.connect('http://10.0.2.2:3030/');
+
+    document.getElementById('north').addEventListener('click', function(e) {
+      client.emit('changeDir', joueur.id, 'top');
+    });
+    document.getElementById('south').addEventListener('click', function(e) {
+      client.emit('changeDir', joueur.id, 'bottom');
+    });
+    document.getElementById('west').addEventListener('click', function(e) {
+      client.emit('changeDir', joueur.id, 'left');
+    });
+    document.getElementById('east').addEventListener('click', function(e) {
+      client.emit('changeDir', joueur.id, 'right');
+    });
+  }
+  else {
+    client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+    document.getElementById("fleches").style.display = "none";
+  }
+
+  client.on('welcome', function(socketId, rooms) {
+    joueur.id = socketId;
+    if (rooms.length > 0) {
+      createGameSelector(rooms);
+      document.querySelector('#btnEnter').style.display = "inline-block";
+    }
+  });
+}
+
+function createGame() {
+  document.querySelector('#welcomeDiv').style.display = "none";
+  document.querySelector('#createGameDiv').style.display = "block";
+}
+
+function createGameSelector(rooms) {
+  let table = document.querySelector('.game_table');
+
+  for (var i = 0; i < rooms.length; i++) {
+    table.innerHTML += "<tr> <td>"+(i+1)+"</td> <td onclick='selectRoom()'>"+rooms[i].name+"</td> <td>"+rooms[i].motos_available.length+"</td> </tr>";
+  }
+}
+
+function selectRoom() {
+  gameId = event.target.previousElementSibling.textContent-1;
+  client.emit('selectRoom', gameId, function(room) {
+    if (room) {
+      console.log(room);
+      createMotoSelector(room.motos_available);
+      document.querySelector('#selectGameDiv').style.display = "none";
+      document.querySelector('#loginDiv').style.display = "block";
+    }
+    else {
+      alert("ERREUR: Cette partie n'existe plus !");
+    }
+  });
+}
+
+function displayGames() {
+  document.querySelector('#welcomeDiv').style.display = "none";
+  document.querySelector('#selectGameDiv').style.display = "block";
+}
+
+document.querySelector('#formGame').addEventListener('submit', function(e) {
+  event.preventDefault();
+  let nameGame = document.createGame.children.name.value;
+  console.log(nameGame);
+
+  let nbJoueurs = document.createGame.children.selectDiv.children.nbJoueurs.value;
+  console.log(nbJoueurs);
+
+  client.emit('createGame', nameGame, nbJoueurs, function(msg, game, game_ID) {
+    if (msg == "name-unavailable") {
+      console.log("echec");
+      alert("Une partie de même nom est déjà en cours !");
+    }
+    else {
+      console.log("valide");
+      console.log(game);
+      gameId = game_ID;
+      createMotoSelector(game.motos_available);
+      document.querySelector('#createGameDiv').style.display = "none";
+      document.querySelector('#loginDiv').style.display = "block";
+    }
+  });
+})
 /*******************************
- *             LOGIN            *
- *******************************/
+*             LOGIN            *
+*******************************/
 
 // - Ajoute dans le document HTML les éléments des motos disponibles
 function createMotoSelector(motos) {
-    /***********************/
-    client.emit('nbPlayers', joueur, function(res) {
-        if(res.numberPlayersStart != 0){
-            joueur.nbPlayers = res.numberPlayersStart;
-            nbPlayers = res.numberPlayersStart;
-            console.log(nbPlayers);
-            console.log("nbPlayers");
-        }
-    });
+  motos_available = motos
+  let divSelector = document.querySelector('#motoSelector');
+  let divDots = document.querySelector('#dots');
+  if (motos.length > 0) {
+    for (var i = 0; i < motos.length; i++) {
+      dots.innerHTML += "<span class='dot' onclick='currentSlide("+(i+1)+")'></span>";
 
-    setTimeout(function() {
-        printGlobalIdvalue();
-    }, 500);
-
-    motos_available = motos
-    let divSelector = document.querySelector('#motoSelector');
-    let divDots = document.querySelector('#dots');
-
-    if (motos.length > 0) {
-        for (var i = 0; i < motos.length; i++) {
-          dots.innerHTML += "<span class='dot' onclick='currentSlide("+(i+1)+")'></span>";
-          if (motos[i] == "bleu") {
-            divSelector.innerHTML += "<div class='mySlides fade'>"+
-                "<img src='img/bleu.png' width='100%'>"+
-                "</div>";
-          }
-          if (motos[i] == "vert") {
-            divSelector.innerHTML += "<div class='mySlides fade'>"+
-                "<img src='img/vert.png' width='100%'>"+
-                "</div>";
-          }
-          if (motos[i] == "orange") {
-            divSelector.innerHTML += "<div class='mySlides fade'>"+
-                "<img src='img/orange.png' width='100%'>"+
-                "</div>";
-          }
-          if (motos[i] == "rouge") {
-            divSelector.innerHTML += "<div class='mySlides fade'>"+
-                "<img src='img/rouge.png' width='100%'>"+
-                "</div>";
-          }
-        }
-        slide_index = 1;
-        showSlides(slide_index);
+      if (motos[i] == "bleu") {
+        divSelector.innerHTML += "<div class='mySlides fade'>"+
+                                    "<img src='img/bleu.png' width='100%'>"+
+                                 "</div>";
+      }
+      if (motos[i] == "vert") {
+        divSelector.innerHTML += "<div class='mySlides fade'>"+
+                                    "<img src='img/vert.png' width='100%'>"+
+                                 "</div>";
+      }
+      if (motos[i] == "orange") {
+        divSelector.innerHTML += "<div class='mySlides fade'>"+
+                                    "<img src='img/orange.png' width='100%'>"+
+                                 "</div>";
+      }
+      if (motos[i] == "rouge") {
+        divSelector.innerHTML += "<div class='mySlides fade'>"+
+                                    "<img src='img/rouge.png' width='100%'>"+
+                                 "</div>";
+      }
     }
-    else {
-        divSelector.innerHTML = "<div style='text-align: center;'>"+
-            "<h2>Plus de moto disponible</h2>"+
-            "</div>";
-        document.querySelector('#loginBTN').disabled = true;
-    }
+    slide_index = 1;
+    showSlides(slide_index);
+  }
+  else {
+    divSelector.innerHTML = "<div style='text-align: center;'>"+
+                              "<h2>Plus de moto disponible</h2>"+
+                            "</div>";
+    document.querySelector('#loginBTN').disabled = true;
+  }
 
-}
-
-function printGlobalIdvalue() {
-//    alert(nbPlayers);  // it also displays 2
-    if(nbPlayers != 0){
-        document.getElementById("radiobuttons").style.display = "none";
-    }
 }
 
 // - Permet la navigation entre les différentes motos disponibles
@@ -186,10 +226,10 @@ function showSlides(n) {
   if (n > slides.length) {slide_index = 1}
   if (n < 1) {slide_index = slides.length}
   for (i = 0; i < slides.length; i++) {
-    slides[i].style.display = "none";
+      slides[i].style.display = "none";
   }
   for (i = 0; i < dots.length; i++) {
-    dots[i].className = dots[i].className.replace(" active", "");
+      dots[i].className = dots[i].className.replace(" active", "");
   }
   slides[slide_index-1].style.display = "block";
   dots[slide_index-1].className += " active";
@@ -197,19 +237,13 @@ function showSlides(n) {
 
 // - Validation du formulaire et lancement du jeu si succès
 document.querySelector("#formLogin").addEventListener('submit', function(e) {
-//  console.log("login");
-  //ici
-    event.preventDefault();
-    joueur.pseudo = document.login.children.pseudo.value;
+  console.log("login");
+  event.preventDefault();
+  joueur.pseudo = document.login.children.pseudo.value;
+  console.log(document.login.children.pseudo.value);
 
-    if(nbPlayers == 0){
-       nbPlayers = document.login.elements['nbPlayers'].value;
-       joueur.nbPlayers = nbPlayers;
-    }
-
-//    console.log('nb players: ' + nbPlayers)
-    joueur.moto = motos_available[slide_index-1];
-//  console.log(motos_available[slide_index-1]);
+  joueur.moto = motos_available[slide_index-1];
+  console.log(motos_available[slide_index-1]);
 
   if (joueur.moto == "bleu") {
     joueur.color = COLORS.bleu;
@@ -224,33 +258,36 @@ document.querySelector("#formLogin").addEventListener('submit', function(e) {
     joueur.color = COLORS.vert;
   }
 
-  client.emit('login', joueur, function(res) { //ici
+  client.emit('login', joueur, gameId, function(res) {
     if (res == "pseudo-unavailable") {
       console.log("echec");
       alert("Ce pseudo est déjà utilisé !");
     }
-
     else {
       console.log("valide");
       localStorage.pseudo = joueur.pseudo;
       initGame(res);
     }
-
-//    if(res.numberPlayersStart != 0){
-//        joueur.nbPlayers = res.numberPlayersStart;
-//        nbPlayers = res.numberPlayersStart;
-//    }
   });
 });
 
 /************************************
- *           INITIALISATION          *
- ************************************/
+*           INITIALISATION          *
+************************************/
 // - Affiche l'air de jeu
 function initGame(data) {
   document.querySelector('.overlay').style.display = "none";
   client.off('welcome');
-  client.off('motoAvailable');
+
+  motos_size = scaleMotoSize(data.moto_size, data.size);
+  for (var i = 0; i < data.players.length; i++) {
+    if (data.players[i].id == joueur.id) {
+      joueur = Object.assign({}, data.players[i]);
+      joueur.pos = scalePos(joueur, data.size);
+      joueur.path = scalePath(joueur.path, data.size);
+    }
+  }
+
   createPlayground();
   client.on('newPlayer', drawMoto);
   //drawMoto(data);
@@ -261,9 +298,9 @@ function initGame(data) {
   boxDialog.setAttribute("open", "open");
   boxDialog.appendChild(text);
   document.querySelector('#game').appendChild(boxDialog);
-  client.emit('ready', function(str) {
+  client.emit('ready', gameId, function(str) {
     if (str == "waitOther") {
-      document.querySelector('#info').innerHTML = "En attente " + data.numberPlayersStart + " d'autre(s) joueur(s)";
+      document.querySelector('#info').innerHTML = "En attente d'autres joueur";
     }
     if (str == "waitPlay") {
       document.querySelector('#info').innerHTML = "En attente de la fin de partie";
@@ -271,7 +308,7 @@ function initGame(data) {
   });
 
   client.on('init', launchGame);
-  client.on('newGame', newGame);
+  //client.on('finish', finish);
 }
 
 // - Créer l'aire de jeu avec les bonnes dimensions
@@ -293,35 +330,34 @@ function createPlayground() {
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
   canvas_ctx = canvas.getContext("2d");
-  console.log(canvas_ctx);
 }
-
 
 function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].status != "waiting") {
-      var pos = scalePos(data.players[i], data.moto_size, data.size);
+      let pos = scalePos(data.players[i], data.size);
       canvas_ctx.fillStyle = data.players[i].color;
       if (data.players[i].dir == "bottom" || data.players[i].dir == "top") {
-        canvas_ctx.fillRect(pos.x, pos.y, data.moto_size.w, data.moto_size.l);
+        canvas_ctx.fillRect(pos.x-(motos_size.w/2), pos.y-(motos_size.l/2), motos_size.w, motos_size.l);
       }
       if (data.players[i].dir == "left" || data.players[i].dir == "right") {
-        canvas_ctx.fillRect(pos.x, pos.y, data.moto_size.l, data.moto_size.w);
+        canvas_ctx.fillRect(pos.x-(motos_size.l/2), pos.y-(motos_size.w/2), motos_size.l, motos_size.w);
       }
     }
   }
 }
 
-function scalePos(player, size, scale) {
+function scaleMotoSize(motoSize, scale) {
+  let w = parseFloat(((motoSize.w / scale.width) * CANVAS_SIZE).toFixed(2));
+  let l = parseFloat(((motoSize.l / scale.height) * CANVAS_SIZE).toFixed(2));
+  return {w: w, l: l};
+}
+
+function scalePos(player, scale) {
   var x, y;
-  if (player.dir == "bottom" || player.dir == "top") {
-    x = parseFloat((((player.pos.x / scale.width) * CANVAS_SIZE) - (size.w/2)).toFixed(2));
-    y = parseFloat(((player.pos.y / scale.height) * CANVAS_SIZE).toFixed(2));
-  }
-  if (player.dir == "right" || player.dir == "left") {
-    x = parseFloat(((player.pos.x / scale.width) * CANVAS_SIZE).toFixed(2));
-    y = parseFloat((((player.pos.y / scale.height) * CANVAS_SIZE) - (size.w/2)).toFixed(2));
-  }
+  x = parseFloat(((player.pos.x / scale.width) * CANVAS_SIZE).toFixed(2));
+  y = parseFloat(((player.pos.y / scale.height) * CANVAS_SIZE).toFixed(2));
+
   return {x: x, y: y};
 }
 
@@ -335,84 +371,28 @@ function scalePath(path, scale) {
   return normalizePath;
 }
 
-//function displayPlayersList(joueurs) {
-//
-//}
-
-//function addPlayersGame(joueurs) {
-//
-//}
 // - Lance le compte à rebours et démarre la partie
 function launchGame(gameState){
-  //displayPlayersList(joueurs);
-  //addPlayersGame(joueurs);
-  console.log("new Gamestate: ");
-  console.log(gameState);
-  for (var i = 0; i < gameState.players.length; i++) {
-    if (gameState.players[i].id == joueur.id) {
-//      console.log(gameState.players[i].pos);
-//      console.log(gameState.players[i].score);
-//      console.log(gameState.players[i].pseudo);
-      joueur.pos = scalePos(gameState.players[i], gameState.moto_size, gameState.size);
-    }
-  }
-//  console.log(joueur.pos);
-
+  client.off('init');
   var timer = document.querySelector('#info');
   timer.innerHTML = "5";
-  timerId = setInterval(timerRun, 1000);
-
-}
-
-// - Éxecute le compte à rebours
-function timerRun() {
-  counter = parseInt(document.querySelector('#info').textContent);
-  counter--;
-  if (counter == 0) {
-    clearInterval(timerId);
-    document.querySelector('#info').innerHTML = "GO !";
-    setTimeout(play, 1000);
-  }
-  else {
-    document.querySelector('#info').innerHTML = counter;
-  }
+  timerId = setInterval(() => {
+    counter = parseInt(document.querySelector('#info').textContent);
+    counter--;
+    if (counter == 0) {
+      clearInterval(timerId);
+      document.querySelector('#info').innerHTML = "GO !";
+      setTimeout(play, 1000);
+    }
+    else {
+      document.querySelector('#info').innerHTML = counter;
+    }
+  }, 1000);
 }
 
 /*******************************
- *              JEU             *
- *******************************/
-
-
-/*************************************************************
-*              Add movement to the Buttons                   *
-**************************************************************/
-
-document.getElementById('north').addEventListener('click', function(e) {
-    client.emit('changeDir', joueur.id, 'top');
-//            console.log("this is sparta");
-});
-
-
-document.getElementById('south').addEventListener('click', function(e) {
-    client.emit('changeDir', joueur.id, 'bottom');
-//        console.log("this is sparta");
-});
-
-
-document.getElementById('west').addEventListener('click', function(e) {
-    client.emit('changeDir', joueur.id, 'left');
-//        console.log("this is sparta");
-});
-
-document.getElementById('east').addEventListener('click', function(e) {
-    client.emit('changeDir', joueur.id, 'right');
-//            console.log("this is sparta");
-});
-
-/*************************************************************
-*             End of Adding movement to the Buttons           *
-**************************************************************/
-
+*              JEU             *
+*******************************/
 
 function play() {
   console.log("play");
@@ -423,29 +403,26 @@ function play() {
     if (joueur.status != 'waiting' && joueur.status != 'dead') {
       switch (joueur.dir) {
         case "top":
-          joueur.pos.y -= 24;
+          joueur.pos.y -= motos_size.l;
           break;
         case "bottom":
-          joueur.pos.y += 24;
+          joueur.pos.y += motos_size.l;
           break;
         case "left":
-          joueur.pos.x -= 24;
+          joueur.pos.x -= motos_size.l;
           break;
         case "right":
-          joueur.pos.x += 24;
+          joueur.pos.x += motos_size.l;
           break;
       }
-      client.emit('updatePos', joueur, CANVAS_SIZE);
-//      gameStart = new Date().getTime() / 1000;
+      joueur.score += 10;
+      client.emit('updatePos', joueur, gameId, CANVAS_SIZE);
     }
-  }, 1500 / FRAME_RATE);
+  }, 500);
 
   client.on('update', update);
-  client.on('newDir', update);
   client.on('collide', playerDead);
-
 }
-
 
 function update(gameState) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
@@ -469,228 +446,75 @@ function update(gameState) {
     if (players[i].id == joueur.id) {
       joueur.path = normalizePath;
       joueur.dir = players[i].dir;
-      joueur.score += 10;
-      console.log(joueur.score);
-    }
-  }
-  if(joueur.status != "dead" && gameState.nbPlayers_alive > 1){
-    checkCollision(gameState);
-  }
-}
-
-
-function playerDead(gameState) {
-//  console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Loser ! ");
-
-  console.log(gameState.nbPlayers_alive);
-  if (gameState.nbPlayers_alive == 1) {
-    console.log("Game finished");
-    clearInterval(gameLoopId);
-    //********************** Début : Affichage Des Résultats Du JEU (GAGNANT) ****************************************//
-    for (var i = 0; i < gameState.players.length; i++) {
-      if (gameState.players[i].status !== "dead") {
-//        let gameEndWinner = new Date().getTime() / 1000;
-//        joueur.score = ((gameEndWinner - gameStart) * 50 + 100).toFixed(2);
-        joueur.win = joueur.win + 1;
-        joueur.status = "winner";
-//        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.win + " " + joueur.moto + " The Winner ! ");
-
-        document.querySelector('#info').innerHTML = "YOU WIN";
-        document.querySelector('#info').style.display = 'block';
-        document.getElementById("info").style.backgroundColor = 'white';
-
-
-        var newDiv0 = document.createElement("div");
-        newDiv0.id = 'resData_0';
-        var newDiv = document.createElement("div");
-        newDiv.id = 'resData';
-        var newDiv1 = document.createElement("div");
-        newDiv1.id = 'resData_1';
-        var newDiv2 = document.createElement("div");
-        newDiv2.id = 'resData_2';
-        var newDiv3 = document.createElement("div");
-        newDiv3.id = 'resData_3';
-
-
-        document.querySelector('#info').appendChild(newDiv0);
-        document.querySelector('#info').appendChild(newDiv);
-        document.querySelector('#info').appendChild(newDiv1);
-        document.querySelector('#info').appendChild(newDiv2);
-        document.querySelector('#info').appendChild(newDiv3);
-
-
-        var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
-        var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
-        var newContent_1 = document.createTextNode( " Status : " +  "  "  + joueur.status);
-        var newContent_2 = document.createTextNode( " Moto : " +  "  "  + joueur.moto);
-        var newContent_3 = document.createTextNode( " You are the new Great King of the STATE ! ");
-
-
-        newDiv0.appendChild(newContent_0);
-        newDiv.appendChild(newContent);
-        newDiv1.appendChild(newContent_1);
-        newDiv2.appendChild(newContent_2);
-        newDiv3.appendChild(newContent_3);
-
-
-        document.querySelector('#resData_0').style.display = 'block';
-        document.querySelector('#resData').style.display = 'block';
-        document.querySelector('#resData_1').style.display = 'block';
-        document.querySelector('#resData_2').style.display = 'block';
-        document.querySelector('#resData_3').style.display = 'block';
-        document.getElementById("resData_0").style.backgroundColor = 'white';
-        document.getElementById("resData").style.backgroundColor = 'white';
-        document.getElementById("resData_1").style.backgroundColor = 'white';
-        document.getElementById("resData_2").style.backgroundColor = 'white';
-        document.getElementById("resData_3").style.backgroundColor = 'white';
-
-        client.emit('winnerData', joueur);
-
-      }
-    }
-    //********************** Fin : Affichage Des Résultats Du JEU (GAGNANT) ******************************************//
-    var newDiv4 = document.createElement("div");
-    newDiv4.id = 'resData_4';
-    document.querySelector('#info').appendChild(newDiv4);
-    var newContent_4 = document.createElement("BUTTON");
-    newContent_4.innerHTML = "Play again"
-    newContent_4.onclick = function() { client.emit('relaunch'); }
-    newDiv4.appendChild(newContent_4);
-    document.querySelector('#resData_4').style.display = 'block';
-    document.querySelector('#resData_4').style.backgroundColor = 'white';
-  }
-
-  for (var i = 0; i < gameState.players.length; i++) {
-    if (gameState.players[i].id === joueur.id) {
-      if (gameState.players[i].status === "dead") {
-        //********************** Début : Affichage Des Résultats Du JEU (PERDANT) ************************************//
-        joueur.status = "dead";
-//        let gameEnd = new Date().getTime() / 1000;
-//        joueur.score = ((gameEnd - gameStart) * 50 + 50).toFixed(2);
-        joueur.lose = joueur.lose + 1;
-//        console.log(joueur.score + " " + joueur.pseudo + " " + joueur.status + " " + joueur.lose + " " + joueur.moto + " The Looser ! ");
-
-        document.querySelector('#info').innerHTML = "GAME OVER";
-        document.querySelector('#info').style.display = 'block';
-        document.getElementById("info").style.backgroundColor = 'white';
-
-        var newDiv0 = document.createElement("div");
-        newDiv0.id = 'resData_0';
-        var newDiv = document.createElement("div");
-        newDiv.id = 'resData';
-        var newDiv1 = document.createElement("div");
-        newDiv1.id = 'resData_1';
-        var newDiv2 = document.createElement("div");
-        newDiv2.id = 'resData_2';
-        var newDiv3 = document.createElement("div");
-        newDiv3.id = 'resData_3';
-
-        document.querySelector('#info').appendChild(newDiv0);
-        document.querySelector('#info').appendChild(newDiv);
-        document.querySelector('#info').appendChild(newDiv1);
-        document.querySelector('#info').appendChild(newDiv2);
-        document.querySelector('#info').appendChild(newDiv3);
-
-        var newContent_0 = document.createTextNode( " Pseudo : " +  "  "  + joueur.pseudo);
-        var newContent = document.createTextNode( " Score : " +  "  "  + joueur.score);
-        var newContent_1 = document.createTextNode( " Status : " +  "  "  + joueur.status);
-        var newContent_2 = document.createTextNode( " Moto : " +  "  "  + joueur.moto);
-        var newContent_3 = document.createTextNode( " You won't have the crepes this Night ! Oups ! ");
-
-
-        newDiv0.appendChild(newContent_0);
-        newDiv.appendChild(newContent);
-        newDiv1.appendChild(newContent_1);
-        newDiv2.appendChild(newContent_2);
-        newDiv3.appendChild(newContent_3);
-
-        document.querySelector('#resData_0').style.display = 'block';
-        document.querySelector('#resData').style.display = 'block';
-        document.querySelector('#resData_1').style.display = 'block';
-        document.querySelector('#resData_2').style.display = 'block';
-        document.querySelector('#resData_3').style.display = 'block';
-        document.getElementById("resData_0").style.backgroundColor = 'white';
-        document.getElementById("resData").style.backgroundColor = 'white';
-        document.getElementById("resData_1").style.backgroundColor = 'white';
-        document.getElementById("resData_2").style.backgroundColor = 'white';
-        document.getElementById("resData_3").style.backgroundColor = 'white';
-
-        client.emit('looserData', joueur);
-
-        //********************** Fin : Affichage Des Résultats Du JEU (PERDANT) **************************************//
-
-      }
     }
   }
 }
 
-function checkCollision(gameState) {
-  //var myPos = scalePos(joueur, gameState.moto_size, gameState.size);
-  console.log("check collision");
-  var myPos = joueur.pos;
-  if (joueur.dir == "bottom") {
-    myPos = {x: myPos.x, y: myPos.y+gameState.moto_size.l};
-  }
-  if (joueur.dir == "right") {
-    myPos = {x: myPos.x+gameState.moto_size.l, y: myPos.y};
+function playerDead(gameState, id) {
+  console.log(id);
+  if (id == joueur.id) {
+    document.querySelector('#info').innerHTML = "PERDU !";
+    document.querySelector('#info').style.display = 'block';
+    client.off('update');
+    client.off('collide');
+    document.removeEventListener('keydown', keydown);
+
+    joueur.status = "dead";
+    joueur.score -= 20;
+    joueur.lose += 1;
+    client.emit('looserData', joueur, gameId);
   }
 
-  for (var i = 0; i < gameState.players.length; i++) {
-    if (gameState.players[i].id != joueur.id) {
-      var normalizePath = scalePath(gameState.players[i].path, gameState.size);
-
-      for (var j = 0; j < normalizePath.length; j++) {
-        if (   Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x) && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)+1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)-1
-            || Math.trunc(myPos.x) == Math.trunc(normalizePath[j].x)-1 && Math.trunc(myPos.y) == Math.trunc(normalizePath[j].y)+1) {
-          client.emit('collision', joueur.id);
-          console.log("COLLIDE !!!");
-        }
-      }
-    }
+  if (gameState.nbPlayers_alive = 1) {
+    console.log(gameState);
+    finish();
   }
-
-  if (myPos.x >= CANVAS_SIZE || myPos.x <= 0 || myPos.y >= CANVAS_SIZE || myPos.y <= 0) {
-    client.emit('collision', joueur.id);
-    console.log("COLLIDE !!!");
-  }
-
-  for (var i = 0; i < joueur.path.length-1; i++) {
-    if (Math.trunc(myPos.x) == Math.trunc(joueur.path[i].x) &&
-        Math.trunc(myPos.y) == Math.trunc(joueur.path[i].y)) {
-        client.emit('collision', joueur.id);
-    }
-  }
-  //DISPLAY SCORE
-  document.getElementById("players").innerHTML = "Player: " + joueur.pseudo + " <br>Score : " + joueur.score + " <br>Wins: " + joueur.win;
 }
 
 function keydown(event){
   switch(event.keyCode){
     case 37:
-      //joueur.pos.x -= 24;
-      client.emit('changeDir', joueur.id, 'left');
+      if (joueur.dir == "top") {
+        joueur.pos.y -= (motos_size.l/2);
+      }
+      if (joueur.dir == "bottom") {
+        joueur.pos.y += (motos_size.l/2);
+      }
+      joueur.pos.x -= (motos_size.l/2);
+      client.emit('changeDir', joueur, gameId, 'left', CANVAS_SIZE);
       break;
 
     case 38:
-      //joueur.pos.y -= 24;
-      client.emit('changeDir', joueur.id, 'top');
+      if (joueur.dir == "left") {
+        joueur.pos.x -= (motos_size.l/2);
+      }
+      if (joueur.dir == "right") {
+        joueur.pos.x += (motos_size.l/2);
+      }
+      joueur.pos.y -= (motos_size.l/2);
+      client.emit('changeDir', joueur, gameId, 'top', CANVAS_SIZE);
       break;
 
     case 39:
-      //joueur.pos.x += 24;
-      client.emit('changeDir', joueur.id, 'right');
+      if (joueur.dir == "top") {
+        joueur.pos.y -= (motos_size.l/2);
+      }
+      if (joueur.dir == "bottom") {
+        joueur.pos.y += (motos_size.l/2);
+      }
+      joueur.pos.x += (motos_size.l/2);
+      client.emit('changeDir', joueur, gameId, 'right', CANVAS_SIZE);
       break;
 
     case 40:
-      //joueur.pos.y += 24;
-      client.emit('changeDir', joueur.id, 'bottom');
+      if (joueur.dir == "left") {
+        joueur.pos.x -= (motos_size.l/2);
+      }
+      if (joueur.dir == "right") {
+        joueur.pos.x += (motos_size.l/2);
+      }
+      joueur.pos.y += (motos_size.l/2);
+      client.emit('changeDir', joueur, gameId, 'bottom', CANVAS_SIZE);
       break;
 
     case 80:
@@ -699,28 +523,138 @@ function keydown(event){
   }
 }
 
-function handleMove(event) {
-//  console.log(event.touches);
-  var touches = event.touches;
-//  console.log(touches[0].clientX);
-//  console.log(touches[0].clientY);
+function finish() {
+  clearInterval(gameLoopId);
+
+  if (joueur.status != "dead") {
+    document.querySelector('#info').innerHTML = "GAGNÉ !";
+    document.querySelector('#info').style.display = 'block';
+    client.off('newPlayer');
+    client.off('update');
+    client.off('collide');
+    document.removeEventListener('keydown', keydown);
+
+    joueur.status = "winner";
+    joueur.score += 20;
+    joueur.win += 1;
+    client.emit('winnerData', joueur, gameId);
+  }
+  client.on('displayRes', displayResData);
 }
 
-function newGame(gameState) {
-    console.log("Restarting game");
-    console.log(gameState.nbPlayers_alive);
-    setTimeout(function() {
-    document.getElementById('info').innerHTML = "";
-    }, 500);
+function displayResData(room) {
+  console.log(room);
 
-    setTimeout(function() {
-        for(var i = 0; i < gameState.players.length; i ++) {
-            if (gameState.players[i].id == joueur.id)
-            {
-               joueur = gameState.players[i];
-            }
-        }
-        launchGame(gameState);
-    }, 500);
+  document.querySelector('#info').style.top = '25%';
+  let resData = document.createElement('div');
+  resData.id = 'resdata';
+  let tableData = document.createElement('table');
+  tableData.classList.add('game_table');
+
+  let row1 = document.createElement('tr');
+
+  let th1 = document.createElement('th');
+  let th1_txt = document.createTextNode("Pseudo");
+  th1.appendChild(th1_txt);
+  row1.appendChild(th1);
+  let th2 = document.createElement('th');
+  let th2_txt = document.createTextNode("Score");
+  th2.appendChild(th2_txt);
+  row1.appendChild(th2);
+  let th3 = document.createElement('th');
+  let th3_txt = document.createTextNode("Victoire");
+  th3.appendChild(th3_txt);
+  row1.appendChild(th3);
+  let th4 = document.createElement('th');
+  let th4_txt = document.createTextNode("Défaite");
+  th4.appendChild(th4_txt);
+  row1.appendChild(th4);
+
+  tableData.appendChild(row1);
+
+  for (var i = 0; i < room.players.length; i++) {
+    let row = document.createElement('tr');
+
+    if (room.players[i].status == "winner") {
+      row.id = "winner";
+    }
+
+    let td1 = document.createElement('td');
+    let td1_txt = document.createTextNode(room.players[i].pseudo);
+    td1.appendChild(td1_txt);
+    row.appendChild(td1);
+    let td2 = document.createElement('td');
+    let td2_txt = document.createTextNode(room.players[i].score);
+    td2.appendChild(td2_txt);
+    row.appendChild(td2);
+    let td3 = document.createElement('td');
+    let td3_txt = document.createTextNode(room.players[i].win);
+    td3.appendChild(td3_txt);
+    row.appendChild(td3);
+    let td4 = document.createElement('td');
+    let td4_txt = document.createTextNode(room.players[i].lose);
+    td4.appendChild(td4_txt);
+    row.appendChild(td4);
+
+    tableData.appendChild(row);
+  }
+
+  resData.appendChild(tableData);
+  document.querySelector('#info').appendChild(resData);
+
+  let btnReplay = document.createElement('button');
+  btnReplay.id = "btnReplay";
+  let btn_txt = document.createTextNode('REJOUER');
+  btnReplay.appendChild(btn_txt);
+  btnReplay.addEventListener("click", replay);
+  document.querySelector('#info').appendChild(btnReplay);
 }
 
+function replay() {
+  client.off('displayRes');
+  document.querySelector('#info').innerHTML = "";
+  document.querySelector('#info').style.display = "none";
+  document.querySelector('#info').style.top = "35%";
+
+  joueur.status = "ready";
+  client.emit('newGame', joueur, gameId, function(res) {
+    if (res == "waitOther") {
+      document.querySelector('#info').style.display = "block";
+      document.querySelector('#info').innerHTML = "En attente d'autres joueur";
+    }
+  });
+  client.on('drawReadyPlayer', drawReadyMoto);
+  client.on('relaunch', function(room) {
+    client.off('relaunch');
+    console.log(room);
+    console.log(joueur.pos);
+    console.log(joueur.path);
+    for (var i = 0; i < room.players.length; i++) {
+      if (  room.players[i].id == joueur.id) {
+        joueur.pos = scalePos(room.players[i], room.size);
+        joueur.path = scalePath(room.players[i].path, room.size);
+      }
+    }
+    console.log(joueur.pos);
+    console.log(joueur.path);
+    document.querySelector('#info').style.display = "block";
+
+    launchGame(room);
+  });
+}
+
+function drawReadyMoto(data) {
+  canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
+  for (var i = 0; i < data.players.length; i++) {
+    if (data.players[i].status == "ready") {
+      let pos = scalePos(data.players[i], data.size);
+      canvas_ctx.fillStyle = data.players[i].color;
+      if (data.players[i].dir == "bottom" || data.players[i].dir == "top") {
+        canvas_ctx.fillRect(pos.x-(motos_size.w/2), pos.y-(motos_size.l/2), motos_size.w, motos_size.l);
+      }
+      if (data.players[i].dir == "left" || data.players[i].dir == "right") {
+        canvas_ctx.fillRect(pos.x-(motos_size.l/2), pos.y-(motos_size.w/2), motos_size.l, motos_size.w);
+      }
+    }
+  }
+}

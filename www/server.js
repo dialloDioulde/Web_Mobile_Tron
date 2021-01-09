@@ -1,5 +1,35 @@
-
 const io = require('socket.io')();
+
+var rooms = [];
+var clients = [];
+
+class Game {
+  constructor(name, nbMinPlayers){
+    this.name = name,
+    this.size = {width: 100, height: 100},
+    this.players = [],
+    this.motos_available = ["bleu", "orange", "rouge", "vert"],
+    this.moto_size = {w: 1, l: 4},
+    this.step = 4,
+    this.path_length = 100,
+    this.initial_positions = [
+      {x: 50, y: 4},
+      {x: 50, y: 96},
+      {x: 4, y: 50},
+      {x: 96, y: 50}
+    ],
+    this.initial_paths = [
+      [{x: 50, y: 4}],
+      [{x: 50, y: 96}],
+      [{x: 4, y: 50}],
+      [{x: 96, y: 50}]
+    ],
+    this.initial_directions = ["bottom", "top", "right", "left"],
+    this.playing = false,
+    this.nbPlayers_alive = 0,
+    this.nbMinPlayers = nbMinPlayers
+  }
+};
 
 //************* Début : Connexion à MongoDB  *************************************************************************//
 const Player = require("./models/Player");
@@ -17,179 +47,93 @@ db.once('open', () => {
 });
 //************* Fin : Connexion à MongoDB  ***************************************************************************//
 
-//let roomName = makeid(5);
-//const gameRooms = {};
-//const numberPlayersStart = Math.floor(Math.random() * Math.floor(2)) + 1;
-var numberPlayersStart = 0;
-var deadPlayers = [];
-
-
-var game = {
-  size: {width: 100, height: 100},
-  players: [],
-  motos_available: ["bleu", "orange", "rouge", "vert"],
-  moto_size: {w: 7, l: 24},
-  step: 2,
-  path_length: 100,
-  initial_positions: [
-    {x: 50, y: 2},
-    {x: 50, y: 94.5},
-    {x: 2, y: 50},
-    {x: 94.5, y: 50}
-  ],
-  initial_paths: [
-    [{x: 50, y: 2}],
-    [{x: 50, y: 98}],
-    [{x: 2, y: 50}],
-    [{x: 98, y: 50}]
-  ],
-  initial_directions: ["bottom", "top", "right", "left"],
-  playing: false,
-  gameOver: false,
-  nbPlayers_alive: 0,
-  numberPlayersStart: numberPlayersStart
-};
 
 io.on('connection', socket => {
-    console.log("New connection:", socket.id);
-    socket.emit('welcome', socket.id, game.motos_available);
+  console.log("New connection:", socket.id);
+  clients.push(socket);
+  socket.emit('welcome', socket.id, rooms);
 
-//    gameRooms[socket.id] = roomName;
-//ROOMS
-//    let roomName = makeid(5);
-//    gameRooms[socket.id] = roomName;
-//    socket.emit('gameCode', roomName);
-//
-//    state[roomName] = initGame();
-//
-//    socket.join(roomName);
-//    socket.number = 1;
-//    socket.emit('initGame', 1);
-//END ROOMS
-    socket.on('login', newPlayer);
-    socket.on('ready', init);
-    socket.on('updatePos', move);
-    socket.on('changeDir', newDir);
-    socket.on('collision', collide);
-    socket.on('nbPlayers', nbPlayers);
+  socket.on('createGame', createGame);
+  socket.on('selectRoom', selectRoom);
 
+  socket.on('login', newPlayer);
+  socket.on('ready', init);
 
-function nbPlayers(joueur, callback) { //new param
-  return callback(game);
-//  io.sockets.emit('newPlayer', game);
-}
+  socket.on('updatePos', move);
+  socket.on('changeDir', newDir);
 
-  //************************ Début : Enregistrement Des Statistiques Du Jeu dans la BDD ******************************//
-  // GAGNANT
-  socket.on('winnerData', function (data) {
-    if(data.status === "winner"){
-      Player.findOneAndUpdate({name: data.pseudo}, {status: "winner", score: data.score}, function(err, pl_data){
-        if (err){
-          console.log("errr",err);
-        }else{
-          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " WINNER " + pl_data.score + "" );
-        }
-      });
-//      console.log(data);
-    }
+  socket.on('winnerData', saveWinner);
+  socket.on('looserData', saveLooser);
+  socket.on('resData', function(roomID, callback) {
+    return callback(rooms[roomID]);
   });
-  //******************************************************************************************************************//
-  // PERDANT(S)
-  socket.on('looserData', function (data) {
-    if(data.status === "dead"){
-      Player.findOneAndUpdate({name: data.pseudo}, {status: "dead", score: data.score}, function(err, pl_data){
-        if (err){
-          console.log("errr",err);
-        }else{
-          console.log(" You " + "("+ pl_data.name +")"  +  " are the  "  + " LOSER " + pl_data.score + "" );
-        }
-      });
-//      console.log(data);
-    }
-  });
-  //************************ Fin : Enregistrement Des Statistiques Du Jeu dans la BDD ********************************//
 
-
-
-//************************************** Relaunch ****************************************************************************//
-socket.on('relaunch', function () {
-
-    game.initial_positions = [
-      {x: 50, y: 2},
-      {x: 50, y: 94.5},
-      {x: 2, y: 50},
-      {x: 94.5, y: 50}
-    ];
-    game.initial_paths= [
-      [{x: 50, y: 2}],
-      [{x: 50, y: 98}],
-      [{x: 2, y: 50}],
-      [{x: 98, y: 50}]
-    ];
-    for(var i = 0 ; i < game.players.length; i ++){
-         game.players[i].pos = game.initial_positions[i];
-         game.players[i].dir = game.initial_directions[i];
-         game.players[i].path = game.initial_paths[i];
-         game.players[i].status = "ready";
-         game.motos_available.splice(game.motos_available.indexOf(game.players[i]), 1);
-
-    }
-    game.playing = true;
-    game.gameOver = false;
-    game.nbPlayers_alive = game.players.length;
-
-    console.log("Relaunching");
-    io.sockets.emit('newGame', game);
-
-//   }
-});
-//****************************************** End Relaunch ************************************************************************//
+  socket.on('newGame', relaunch);
 
   socket.on('disconnect', function() {
     console.log("disconnect");
     console.log(socket.id);
-    var id_j;
-    for (var i = 0; i < game.players.length; i++) {
-      if (game.players[i].id == socket.id) {
-        game.motos_available.push(game.players[i].moto);
-        game.motos_available.sort();
-        id_j = i;
-      }
+    var id_r, id_j;
+    for (var i = 0; i < rooms.length; i++) {
+      for (var j = 0; j < rooms[i].players.length; j++) {
+        if (rooms[i].players[j].id == socket.id) {
+          rooms[i].motos_available.push(rooms[i].players[j].moto);
+          rooms[i].motos_available.sort();
+          id_r = i;
+          id_j = j;
+        }
 
-      if (game.players[i].status == "waiting") {
-        game.players[i].status = "ready";
+        if (rooms[i].players[j].status == "waiting") {
+          rooms[i].players[j].status = "ready";
+        }
       }
     }
-    game.players.splice(id_j, 1);
 
-    if (game.players.length < 1) {
-      game.playing = false;
+    if (id_r != undefined && id_j != undefined) {
+      socket.leave(rooms[id_r].name);
+      rooms[id_r].players.splice(id_j, 1);
+
+      if (rooms[id_r].players.length <= 1) {
+        rooms[id_r].playing = false;
+      }
     }
+
   });
 });
 
-function newPlayer(joueur, callback) { //new param
-  for (var i = 0; i < game.players.length; i++) {
-    if (game.players[i].pseudo == joueur.pseudo) {
+function createGame(name, nbJoueurs, callback) {
+  for (var i = 0; i < rooms.length; i++) {
+    if (rooms[i].name == name) {
+      console.log("name-unavailable");
+      return callback("name-unavailable", null, 0);
+    }
+  }
+
+  let newGame = new Game(name, nbJoueurs);
+  rooms.push(newGame);
+  return callback("", newGame, rooms.indexOf(newGame));
+}
+
+function selectRoom(roomID, callback) {
+  return callback(rooms[roomID]);
+}
+
+function newPlayer(joueur, roomID, callback) {
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].pseudo == joueur.pseudo) {
       console.log("pseudo-unavailable");
       return callback("pseudo-unavailable");
     }
   }
+  let j = Object.assign({}, joueur);
+  j.pos = Object.assign({}, rooms[roomID].initial_positions[rooms[roomID].players.length]);
+  j.dir = rooms[roomID].initial_directions[rooms[roomID].players.length];
+  j.path = rooms[roomID].initial_paths[rooms[roomID].players.length].slice();
 
-  joueur.pos = game.initial_positions[game.players.length];
-  joueur.dir = game.initial_directions[game.players.length];
-  joueur.path = game.initial_paths[game.players.length];
-
-  if(numberPlayersStart == 0){
-    numberPlayersStart = joueur.nbPlayers;
-    game.numberPlayersStart = numberPlayersStart;
+  if (rooms[roomID].playing) {
+    j.status = "waiting";
   }
-
-  if (game.playing) {
-  // room
-    joueur.status = "waiting";
-  }
-  game.players.push(joueur);
+  rooms[roomID].players.push(j);
 
   // ************** Début :  Création d'un Joueur ******************************************************************* //
   Player.findOne({name: joueur.pseudo}, function (err, pl_pseudo) {
@@ -217,144 +161,240 @@ function newPlayer(joueur, callback) { //new param
   });
   // ************** Fin : Création d'un Joueur ********************************************************************** //
 
-  game.motos_available.splice(game.motos_available.indexOf(joueur.moto), 1);
-  //console.log(joueur);
-  //console.log(game);
-  callback(game);
-
-  io.sockets.emit('newPlayer', game);
-}
-
-
-function init(callback) {
-  if (game.players.length <= numberPlayersStart) {
-    return callback("waitOther");
-  }
-  if (game.playing) {
-    return callback("waitPlay");
-  }
-  if (game.players.length > numberPlayersStart && game.playing == false) {
-    io.sockets.emit('init', game);
-    game.playing = true;
-    game.nbPlayers_alive = game.players.length;
-  }
-}
-
-function move(player, scale) {
-  var playerID = player.id;
-  var posNormalize = normalizePlayer(player.pos, scale);
-  for (var i = 0; i < game.players.length; i++) {
-    var x, y;
-    if (game.players[i].id == playerID) {
-      game.players[i].pos.x = posNormalize.x;
-      game.players[i].pos.y = posNormalize.y;
-      /*if (game.players[i].dir == "top") {
-        x = game.players[i].pos.x;
-        y = game.players[i].pos.y - game.step;
-      }
-      else if (game.players[i].dir == "left") {
-        x = game.players[i].pos.x - game.step;
-        y = game.players[i].pos.y;
-      }
-      else if (game.players[i].dir == "right") {
-        x = game.players[i].pos.x + game.step;
-        y = game.players[i].pos.y;
-      }
-      else {
-        x = game.players[i].pos.x;
-        y = game.players[i].pos.y + game.step;
-      }*/
-
-      game.players[i].path.push(posNormalize);
-      //game.players[i].pos = {x: x, y: y};
-      if (game.players[i].path.length > game.path_length) {
-        game.players[i].path.shift();
-      }
+  for (var i = 0; i < clients.length; i++) {
+    if (clients[i].id == joueur.id) {
+      clients[i].join(rooms[roomID].name);
     }
   }
-  io.sockets.emit('update', game);
+
+  rooms[roomID].motos_available.splice(rooms[roomID].motos_available.indexOf(j.moto), 1);
+  console.log(j);
+  console.log(rooms[roomID]);
+  callback(rooms[roomID]);
+
+  io.to(rooms[roomID].name).emit('newPlayer', rooms[roomID]);
 }
 
-function normalizePlayer(position, scale) {
-  var x = parseFloat(((position.x/scale) * game.size.width).toFixed(2));
-  var y = parseFloat(((position.y/scale) * game.size.height).toFixed(2));
+function init(roomID, callback) {
+  if (rooms[roomID].players.length < rooms[roomID].nbMinPlayers) {
+    return callback("waitOther");
+  }
+  if (rooms[roomID].playing) {
+    return callback("waitPlay")
+  }
+  if (rooms[roomID].players.length == rooms[roomID].nbMinPlayers && rooms[roomID].playing == false) {
+    rooms[roomID].playing = true;
+    rooms[roomID].nbPlayers_alive = rooms[roomID].players.length;
+
+    io.to(rooms[roomID].name).emit('init', rooms[roomID]);
+    console.log(rooms[roomID].players);
+  }
+}
+
+function normalizePlayer(position, scale, roomID) {
+  var x = parseFloat(((position.x/scale) * rooms[roomID].size.width).toFixed(2));
+  var y = parseFloat(((position.y/scale) * rooms[roomID].size.height).toFixed(2));
   return {x: x, y: y};
 }
 
-function newDir(playerID, direction) {
-  //var playerID = player.id;
-  //console.log(player.pos);
-  //var posNormalize = normalizePlayer(player.pos, scale);
-  //console.log(posNormalize);
+function move(player, roomID, scale) {
+  var playerID = player.id;
+  var posNormalize = normalizePlayer(player.pos, scale, roomID);
 
-  for (var i = 0; i < game.players.length; i++) {
-    if (game.players[i].id == playerID) {
-      /*game.players[i].pos.x = posNormalize.x;
-      game.players[i].pos.y = posNormalize.y;*/
-      game.players[i].dir = direction;
-      /*var x, y;
-      if (direction == "left") {
-        x = game.players[i].pos.x - game.step;
-        y = game.players[i].pos.y;
-        game.players[i].dir = "left";
-      }
-      else if (direction == "bottom") {
-        x = game.players[i].pos.x;
-        y = game.players[i].pos.y + game.step;
-        game.players[i].dir = "bottom";
-      }
-      else if (direction == "right") {
-        x = game.players[i].pos.x + game.step;
-        y = game.players[i].pos.y;
-        game.players[i].dir = "right";
-      }
-      else {
-        x = game.players[i].pos.x;
-        y = game.players[i].pos.y - game.step;
-        game.players[i].dir = "top";
-      }*/
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].id == playerID) {
+      checkCollision(roomID, i);
+      rooms[roomID].players[i].pos.x = posNormalize.x;
+      rooms[roomID].players[i].pos.y = posNormalize.y;
+      rooms[roomID].players[i].path.push(posNormalize);
+      rooms[roomID].players[i].score = player.score;
 
-      //game.players[i].path.push(posNormalize);
-      //game.players[i].pos = {x: x, y: y};
-      /*if (game.players[i].path.length > game.path_length) {
-        game.players[i].path.shift();
-      }*/
+      if (rooms[roomID].players[i].path.length > rooms[roomID].path_length) {
+        rooms[roomID].players[i].path.shift();
+      }
     }
   }
-  io.sockets.emit('update', game);
+  io.to(rooms[roomID].name).emit('update', rooms[roomID]);
 }
 
-function collide(playerID) {
-  var deadCount = 0;
-  for (var i = 0; i < game.players.length; i++) {
-//      if(nbPlayersDead > deadCount){
-          if (game.players[i].id == playerID) {
-            console.log(deadPlayers);
-            console.log(deadPlayers.includes(game.players[i].id));
-            if(!deadPlayers.includes(game.players[i].id)){
-                  deadPlayers[deadCount] = game.players[i].id;
-                  deadCount++;
-                  game.players[i].status = "dead";
-                  game.nbPlayers_alive--;
-    //              nbPlayersDead++;
-    //              deadCount++;
-                  game.initial_positions = [
-                      {x: 50, y: 2},
-                      {x: 50, y: 94.5},
-                      {x: 2, y: 50},
-                      {x: 94.5, y: 50}
-                  ];
-                  game.initial_paths= [
-                      [{x: 50, y: 2}],
-                      [{x: 50, y: 98}],
-                      [{x: 2, y: 50}],
-                      [{x: 98, y: 50}]
-                  ];
-                  verifyDead = true;
-            }
+function newDir(player, roomID, direction, scale) {
+  var playerID = player.id;
+  var posNormalize = normalizePlayer(player.pos, scale, roomID);
+
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].id == playerID) {
+      checkCollision(roomID, i);
+
+      if (rooms[roomID].players[i].dir == "top" || rooms[roomID].players[i].dir == "bottom") {
+          if (direction == "left" || direction == "right") {
+            rooms[roomID].players[i].path.push({x: rooms[roomID].players[i].pos.x, y: posNormalize.y});
           }
       }
-  io.sockets.emit('collide', game);
+      if (rooms[roomID].players[i].dir == "left" || rooms[roomID].players[i].dir == "right") {
+          if (direction == "top" || direction == "bottom") {
+            rooms[roomID].players[i].path.push({x: posNormalize.x, y: rooms[roomID].players[i].pos.y});
+          }
+      }
+
+      rooms[roomID].players[i].path.push(posNormalize);
+      rooms[roomID].players[i].pos.x = posNormalize.x;
+      rooms[roomID].players[i].pos.y = posNormalize.y;
+      rooms[roomID].players[i].dir = direction;
+    }
+  }
+  io.to(rooms[roomID].name).emit('update', rooms[roomID]);
+}
+
+function checkCollision(roomID, playerID) {
+  var myPos = Object.assign({}, rooms[roomID].players[playerID].pos);
+
+  if (rooms[roomID].players[playerID].dir == "top") {
+    myPos = {x: myPos.x, y: myPos.y-(rooms[roomID].moto_size.l/2)};
+  }
+  if (rooms[roomID].players[playerID].dir == "bottom") {
+    myPos = {x: myPos.x, y: myPos.y+(rooms[roomID].moto_size.l/2)};
+  }
+  if (rooms[roomID].players[playerID].dir == "left") {
+    myPos = {x: myPos.x-(rooms[roomID].moto_size.l/2), y: myPos.y};
+  }
+  if (rooms[roomID].players[playerID].dir == "right") {
+    myPos = {x: myPos.x+(rooms[roomID].moto_size.l/2), y: myPos.y};
+  }
+
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (i != playerID) {
+      var ennemiPath = rooms[roomID].players[i].path.slice();
+
+      // - détection de collision avec un adversaire
+      for (var j = 0; j < ennemiPath.length; j++) {
+        if (   myPos.x == ennemiPath[j].x && myPos.y == ennemiPath[j].y
+            || myPos.x == ennemiPath[j].x && myPos.y == ennemiPath[j].y+2
+            || myPos.x == ennemiPath[j].x && myPos.y == ennemiPath[j].y-2
+            || myPos.x == ennemiPath[j].x+2 && myPos.y == ennemiPath[j].y
+            || myPos.x == ennemiPath[j].x-2 && myPos.y == ennemiPath[j].y
+            || myPos.x == ennemiPath[j].x+2 && myPos.y == ennemiPath[j].y+2
+            || myPos.x == ennemiPath[j].x-2 && myPos.y == ennemiPath[j].y-2
+            || myPos.x == ennemiPath[j].x+2 && myPos.y == ennemiPath[j].y-2
+            || myPos.x == ennemiPath[j].x-2 && myPos.y == ennemiPath[j].y+2) {
+
+              rooms[roomID].players[playerID].status = "dead";
+              rooms[roomID].nbPlayers_alive--;
+              io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+              console.log("COLLIDE !!!");
+        }
+      }
+    }
+  }
+
+  // - détection de collision avec le bord du canvas
+  if (myPos.x >= rooms[roomID].size.width || myPos.x <= 0 || myPos.y >= rooms[roomID].size.height || myPos.y <= 0) {
+    rooms[roomID].players[playerID].status = "dead";
+    rooms[roomID].nbPlayers_alive--;
+    io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+    console.log("COLLIDE !!!");
+  }
+
+  // - détection de collision avec soi-même
+  console.log(myPos);
+  console.log(rooms[roomID].players[playerID].path);
+  var myPath = rooms[roomID].players[playerID].path;
+  for (var k = 0; k < myPath.length-1; k++) {
+    if (   myPos.x == myPath[k].x && myPos.y == myPath[k].y
+        || myPos.x == myPath[k].x && myPos.y == myPath[k].y+2
+        || myPos.x == myPath[k].x && myPos.y == myPath[k].y-2
+        || myPos.x == myPath[k].x+2 && myPos.y == myPath[k].y
+        || myPos.x == myPath[k].x-2 && myPos.y == myPath[k].y
+        || myPos.x == myPath[k].x+2 && myPos.y == myPath[k].y+2
+        || myPos.x == myPath[k].x-2 && myPos.y == myPath[k].y-2
+        || myPos.x == myPath[k].x+2 && myPos.y == myPath[k].y-2
+        || myPos.x == myPath[k].x-2 && myPos.y == myPath[k].y+2) {
+
+          rooms[roomID].players[playerID].status = "dead";
+          rooms[roomID].nbPlayers_alive--;
+          io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+          console.log("COLLIDE !!!");
+    }
+  }
+}
+
+function saveWinner(data, roomID) {
+  rooms[roomID].playing = false;
+
+  if(data.status === "winner"){
+    Player.findOneAndUpdate({name: data.pseudo}, {status: "winner", score: data.score}, function(err, pl_data){
+      if (err){
+        console.log("errr",err);
+      }else{
+        console.log(pl_data);
+        console.log(" You " + "("+ pl_data.name +")" + " are the" + " WINNER " + pl_data.score);
+      }
+    });
+  }
+
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].id == data.id) {
+      rooms[roomID].players[i].status = data.status;
+      rooms[roomID].players[i].score = data.score;
+      rooms[roomID].players[i].win = data.win;
+    }
+    if (rooms[roomID].players[i].status == "dead") {
+      rooms[roomID].players[i].score -= 20;
+      rooms[roomID].players[i].lose += 1;
+    }
+  }
+
+  rooms[roomID].nbPlayers_alive = 0;
+  io.to(rooms[roomID].name).emit('displayRes', rooms[roomID]);
+}
+
+function saveLooser(data, roomID) {
+  if(data.status === "dead"){
+    Player.findOneAndUpdate({name: data.pseudo}, {status: "dead", score: data.score}, function(err, pl_data){
+      if (err){
+        console.log("errr",err);
+      }else{
+        console.log(" You " + "("+ pl_data.name +")" + " are the" + " LOSER " + pl_data.score);
+      }
+    });
+  }
+
+  /*for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].id == data.id) {
+      rooms[roomID].players[i].status = data.status;
+      rooms[roomID].players[i].score = data.score;
+      rooms[roomID].players[i].lose = data.lose;
+    }
+  }*/
+}
+
+function relaunch(player, roomID, callback) {
+  for (var i = 0; i < rooms[roomID].players.length; i++) {
+    if (rooms[roomID].players[i].id == player.id) {
+      rooms[roomID].players[i].pos = rooms[roomID].initial_positions[i];
+      rooms[roomID].players[i].path = rooms[roomID].initial_paths[i];
+      rooms[roomID].players[i].dir = rooms[roomID].initial_directions[i];
+      rooms[roomID].players[i].status = "ready";
+      rooms[roomID].nbPlayers_alive += 1;
+      io.to(rooms[roomID].name).emit('drawReadyPlayer', rooms[roomID]);
+    }
+  }
+
+  if (rooms[roomID].nbPlayers_alive == rooms[roomID].nbMinPlayers) {
+    for (var i = 0; i < rooms[roomID].players.length; i++) {
+      if (rooms[roomID].players[i].status == "waiting") {
+        rooms[roomID].players[i].status = "ready";
+        rooms[roomID].nbPlayers_alive += 1;
+      }
+    }
+    rooms[roomID].playing = true;
+    console.log("relaunch");
+    console.log(rooms[roomID]);
+    io.to(rooms[roomID].name).emit('relaunch', rooms[roomID]);
+  }
+  else {
+    console.log("wait");
+    return callback("waitOther");
+  }
 }
 
 io.listen(3000);

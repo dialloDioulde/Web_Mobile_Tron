@@ -1,8 +1,8 @@
 {
   "name": "io.cordova.hellocordova",
-  "displayName": "HelloCordova",
+  "displayName": "Tron",
   "version": "1.0.0",
-  "description": "A sample Apache Cordova application that responds to the deviceready event.",
+  "description": "Tron game.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -20,7 +20,8 @@
   },
   "cordova": {
     "plugins": {
-      "cordova-plugin-whitelist": {}
+      "cordova-plugin-whitelist": {},
+      "cordova-plugin-device": {}
     },
     "platforms": [
       "android",
@@ -34,7 +35,6 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.11.8",
     "morgan": "^1.10.0",
-    "reload": "^3.1.1",
     "socket.io": "^3.0.4"
   }
 }

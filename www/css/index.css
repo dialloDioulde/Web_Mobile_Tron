@@ -16,126 +16,208 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- html, body, div, h1, h2, h3, h4, h5, h6, form, label,
- legend, caption, aside, details, figcaption, figure, footer,header,
- menu, nav, section, summary {
-     margin: 0;
-     padding: 0;
-     border: 0;
-     outline: 0;
-     font-weight: inherit;
-     font-size: 16px;
-     font-style: inherit;
-     font-family: 'Roboto', sans-serif;
-     vertical-align: baseline;
-     text-decoration: none;
- }
- html, body{
-     font-family: 'Roboto', sans-serif;
-     overflow: hidden;
- }
- body{
-     background-color: #484848;
- }
+html, body, div, h1, h2, h3, h4, h5, h6, form, label,
+legend, caption, aside, details, figcaption, figure, footer,header,
+menu, nav, section, summary {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-weight: inherit;
+  font-size: 16px;
+  font-style: inherit;
+  font-family: 'Roboto', sans-serif;
+  vertical-align: baseline;
+  text-decoration: none;
+}
+html, body{
+  font-family: 'Roboto', sans-serif;
+  overflow: hidden;
+}
+body{
+  background-color: #484848;
+}
 
- /****************************
-  *          LOGIN           *
-  ***************************/
- .overlay{
-     position: fixed;
-     display: flex;
-     flex-flow:column nowrap;
-     justify-content:center;
-     overflow: hidden;
-     width: 100%;
-     height: 100%;
-     top: 0;
-     left: 0;
-     /*background-color: rgba(0, 0, 0, 0.8);*/
- }
- .overlay>.container{
-     display: flex;
-     flex-flow:column nowrap;
-     justify-content:center;
- }
- .overlay>*, .overlay>.container>*{
-     align-self:center;
- }
- .overlay>.container>*{
-     width: 400px;
- }
- #formLogin{
-     margin-top: 20px;
- }
- #formLogin .inputForm{
-     background-color: #ffffff;
- }
- #formLogin input{
-     display: block;
-     width: 100%;
-     border: none;
-     box-shadow: none;
-     padding-top: 12px;
-     padding-bottom: 12px;
-     font-size: 18px;
-     text-align: center;
-     font-family: 'Roboto', sans-serif;
-     font-weight: 300;
- }
- #formLogin input[type='submit']{
-     background-color: #000066;
-     color: #ffffff;
-     cursor: pointer;
- }
+/****************************
+*            HOME           *
+***************************/
+.overlay{
+  position: fixed;
+  display: flex;
+  flex-flow:column nowrap;
+  justify-content:center;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+.overlay>.container{
+  display: flex;
+  flex-flow:column nowrap;
+  justify-content:center;
+}
+.overlay>*, .overlay>.container>*{
+  align-self:center;
+}
+.overlay>.container>*{
+  width: 50%;
+}
 
- #formLogin > h1{
-     font-weight:300;
-     margin-bottom:10px;
-     text-align: center;
-     color: #ffffff;
-     font-size: 1.5em;
- }
+#welcomeDiv{
+  text-align: center;
+  margin-top: 50px;
+}
+#welcomeDiv button{
+  margin-bottom: 25px;
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 1.8vw;
+  line-height: 1.5;
+  user-select: none;
+  font-family: 'Roboto', sans-serif;
+}
+#btnNew{
+  display: inline-block;
+  border: 1px solid transparent;
+  background-color: #5cb85c;
+}
+#btnNew:hover{
+  border: 1px solid #4cae4c;
+  background-color: transparent;
+}
+#btnEnter{
+  display: none;
+  border: 1px solid transparent;
+  background-color: #46b8da;
+}
+#btnEnter:hover{
+  border: 1px solid #5bc0de;
+  background-color: transparent;
+}
 
- * {box-sizing:border-box}
+/*****************************
+*        CREATE GAME         *
+*****************************/
+#createGameDiv{
+  display: none;
+}
+#formGame{
+      margin-top: 20px;
+  }
+#formGame #selectDiv{
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+#formGame input{
+    display: block;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    font-size: 1.8vw;
+    text-align: center;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+}
+#formGame input[type='submit']{
+    background-color: #000066;
+    color: #ffffff;
+    cursor: pointer;
+}
 
- .mySlides {display: none}
- .mySlides img {vertical-align: middle;}
+/***************************
+*       SELECT GAME        *
+***************************/
+#selectGameDiv{
+  display: none;
+  margin-top: 20px;
+  text-align: center;
+}
+.game_table{
+  display: inline-block;
+  border-collapse: collapse;
+  background-color: white;
+}
+.game_table th{
+  border-bottom: 1px solid black;
+  background-color: #FF9800;
+}
+.game_table th,td{
+  padding: 10px;
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+}
 
- /* Slideshow container */
- .slideshow-container {
-   max-width: 1000px;
-   position: relative;
-   margin: auto;
- }
+/***************************
+*          LOGIN           *
+***************************/
+#loginDiv{
+  display: none;
+}
+#formLogin{
+  margin-top: 20px;
+}
+#formLogin .inputForm{
+  background-color: #ffffff;
+}
+#formLogin input{
+  display: block;
+  width: 100%;
+  border: none;
+  box-shadow: none;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 1.8vw;
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 300;
+}
+#formLogin input[type='submit']{
+  background-color: #000066;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+* {box-sizing:border-box}
+.mySlides {display: none}
+.mySlides img {vertical-align: middle;}
+.slideshow-container {
+  max-width: 1000px;
+  position: relative;
+  margin: auto;
+}
 
  /* Next & previous buttons */
- .prev, .next {
-   cursor: pointer;
-   position: absolute;
-   top: 50%;
-   width: auto;
-   padding: 16px;
-   margin-top: -22px;
-   color: white;
-   font-weight: bold;
-   font-size: 18px;
-   transition: 0.6s ease;
-   border-radius: 0 3px 3px 0;
-   user-select: none;
+.prev, .next {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  width: auto;
+  padding: 16px;
+  margin-top: -22px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  transition: 0.6s ease;
+  border-radius: 0 3px 3px 0;
+  user-select: none;
+}
+.next {
+  right: 0;
+  border-radius: 3px 0 0 3px;
+}
+.prev:hover, .next:hover {
+  background-color: rgba(0,0,0,0.8);
  }
 
- /* Position the "next button" to the right */
- .next {
-   right: 0;
-   border-radius: 3px 0 0 3px;
- }
-
- /* On hover, add a black background color with a little bit see-through */
- .prev:hover, .next:hover {
-   background-color: rgba(0,0,0,0.8);
- }
-
- /* The dots/bullets/indicators */
  .dot {
    cursor: pointer;
    height: 15px;
@@ -146,7 +228,6 @@
    display: inline-block;
    transition: background-color 0.6s ease;
  }
-
  .active, .dot:hover {
    background-color: #717171;
  }
@@ -163,7 +244,6 @@
    from {opacity: .4}
    to {opacity: 1}
  }
-
  @keyframes fade {
    from {opacity: .4}
    to {opacity: 1}
@@ -174,27 +254,26 @@
    .prev, .next,.text {font-size: 11px}
  }
 
-#logo{
-    width: 76%;
-    max-width: 960px;
-    margin: 0 auto;
-}
  /*********************************
   *          PLAYGROUND           *
   *********************************/
+
+/***************************
+*           GAME           *
+***************************/
 main {
   display: none;
 }
 
 #tronCanvas{
-    position: absolute;
-    background: #494d50;
+  position: absolute;
+  background: #494d50;
 }
 
 #playground{
-    position: relative;
-    margin: 10px auto;
-    border: 2px solid #026897;
+  position: relative;
+  margin: 10px auto;
+  border: 2px solid #026897;
 }
 
 #info {
@@ -208,73 +287,22 @@ main {
 }
 
 #resdata{
-  font-size: 2.5vw;
-}
-/****************************
- *          fleches         *
-
-#fleches{
-    z-index: 1;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 96%;
-    max-width: 960px;
-    margin: 0 auto;
+  margin-top: 20px;
+  font-size: 1vw;
+  text-align: center;
 }
 
-#fleches .hautBas{
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    display: flex;
-    flex-flow: column nowrap;
-    justify-content: flex-end;
-    align-items: center;
+#resdata table{
+  background-color: white;
 }
 
-#fleches .droiteGauche{
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: flex-end;
-    align-items: flex-start;
+#resdata #winner{
+  background-color: #33CC00;
 }
 
-#fleches button{
-    text-align: center;
-    width: 40px;
-    height: 40px;
-    font-size: 3vw;
-    opacity: 0.5;
-}
-
-#fleches #south{
-    -webkit-transform: rotate(180deg);
-    -moz-transform: rotate(180deg);
-    -ms-transform: rotate(180deg);
-    -o-transform: rotate(180deg);
-    transform: rotate(180deg);
-}
-
-#fleches #east{
-    -webkit-transform: rotate(90deg);
-    -moz-transform: rotate(90deg);
-    -ms-transform: rotate(90deg);
-    -o-transform: rotate(90deg);
-    transform: rotate(90deg);
-}
-
-#fleches #west{
-    -webkit-transform: rotate(-90deg);
-    -moz-transform: rotate(-90deg);
-    -ms-transform: rotate(-90deg);
-    -o-transform: rotate(-90deg);
-    transform: rotate(-90deg);
-} ***************************/
+/***************************
+*          fleches         *
+***************************/
 .fleches{
     z-index: 1;
     position: fixed;
