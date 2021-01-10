@@ -71,7 +71,7 @@ function onDeviceReady() {
   //***************** mobile ********************//
   if (device.isVirtual || device.platform != "browser") {
     console.log("emulateur");
-    client = io.connect('http://10.0.2.2:3030/');
+    client = io.connect('http://192.168.56.1:3000');
 
     document.getElementById('north').addEventListener('click', function(e) {
       client.emit('changeDir', joueur.id, 'top');
@@ -427,6 +427,7 @@ function play() {
 
   client.on('update', update);
   client.on('collide', playerDead);
+  client.on('finish', finish);
 }
 
 // - Met à jour le canvas
@@ -460,22 +461,23 @@ function update(gameState) {
 function playerDead(gameState, id) {
   console.log(id);
   if (id == joueur.id) {
-    document.querySelector('#info').innerHTML = "PERDU !";
-    document.querySelector('#info').style.display = 'block';
-    client.off('update');
-    client.off('collide');
-    document.removeEventListener('keydown', keydown);
+    if (joueur.status != "dead") {
+      clearInterval(gameLoopId);
+      client.off('collide');
+      document.removeEventListener('keydown', keydown);
+      document.querySelector('#info').innerHTML = "PERDU !";
+      document.querySelector('#info').style.display = 'block';
 
-    joueur.status = "dead";
-    joueur.score -= 20;
-    joueur.lose += 1;
-    client.emit('looserData', joueur, gameId);
+      joueur.status = "dead";
+      joueur.score -= 20;
+      joueur.lose += 1;
+      client.emit('looserData', joueur, gameId);
+    }
   }
-
-  if (gameState.nbPlayers_alive = 1) {
+  /*if (gameState.nbPlayers_alive == 1) {
     console.log(gameState);
     finish();
-  }
+  }*/
 }
 
 // - Gère l'appuie sur les flèches directionnelles du clavier
@@ -534,13 +536,14 @@ function keydown(event){
 // - Fin d'une partie
 function finish() {
   clearInterval(gameLoopId);
+  client.off('newPlayer');
+  client.off('update');
+  client.off('collide');
+  client.off('finish');
 
-  if (joueur.status != "dead") {
+  if (joueur.status != "dead" && joueur.status != "winner") {
     document.querySelector('#info').innerHTML = "GAGNÉ !";
     document.querySelector('#info').style.display = 'block';
-    client.off('newPlayer');
-    client.off('update');
-    client.off('collide');
     document.removeEventListener('keydown', keydown);
 
     joueur.status = "winner";
@@ -553,6 +556,7 @@ function finish() {
 
 // - Affiche les résultats de la partie
 function displayResData(room) {
+  client.off('displayRes');
   console.log(room);
 
   document.querySelector('#info').style.top = '25%';
@@ -622,7 +626,6 @@ function displayResData(room) {
 
 // - Relance une partie
 function replay() {
-  client.off('displayRes');
   document.querySelector('#info').innerHTML = "";
   document.querySelector('#info').style.display = "none";
   document.querySelector('#info').style.top = "35%";

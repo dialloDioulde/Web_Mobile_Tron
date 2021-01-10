@@ -192,7 +192,7 @@ function init(roomID, callback) {
     rooms[roomID].nbPlayers_alive = rooms[roomID].players.length;
 
     io.to(rooms[roomID].name).emit('init', rooms[roomID]);
-    console.log(rooms[roomID].players);
+    console.log(rooms[roomID].nbPlayers_alive);
   }
 }
 
@@ -287,8 +287,8 @@ function checkCollision(roomID, playerID) {
             || myPos.x == ennemiPath[j].x-2 && myPos.y == ennemiPath[j].y+2) {
 
               rooms[roomID].players[playerID].status = "dead";
-              rooms[roomID].nbPlayers_alive--;
-              io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+              //rooms[roomID].nbPlayers_alive--;
+              io.to(rooms[roomID].players[playerID].id).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
               console.log("COLLIDE !!!");
         }
       }
@@ -298,14 +298,12 @@ function checkCollision(roomID, playerID) {
   // - détection de collision avec le bord du canvas
   if (myPos.x >= rooms[roomID].size.width || myPos.x <= 0 || myPos.y >= rooms[roomID].size.height || myPos.y <= 0) {
     rooms[roomID].players[playerID].status = "dead";
-    rooms[roomID].nbPlayers_alive--;
-    io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+    //rooms[roomID].nbPlayers_alive--;
+    io.to(rooms[roomID].players[playerID].id).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
     console.log("COLLIDE !!!");
   }
 
   // - détection de collision avec soi-même
-  console.log(myPos);
-  console.log(rooms[roomID].players[playerID].path);
   var myPath = rooms[roomID].players[playerID].path;
   for (var k = 0; k < myPath.length-1; k++) {
     if (   myPos.x == myPath[k].x && myPos.y == myPath[k].y
@@ -319,10 +317,14 @@ function checkCollision(roomID, playerID) {
         || myPos.x == myPath[k].x-2 && myPos.y == myPath[k].y+2) {
 
           rooms[roomID].players[playerID].status = "dead";
-          rooms[roomID].nbPlayers_alive--;
-          io.to(rooms[roomID].name).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
+          //rooms[roomID].nbPlayers_alive--;
+          io.to(rooms[roomID].players[playerID].id).emit('collide', rooms[roomID], rooms[roomID].players[playerID].id);
           console.log("COLLIDE !!!");
     }
+  }
+
+  if (rooms[roomID].nbPlayers_alive == 1) {
+    io.to(rooms[roomID].name).emit('finish');
   }
 }
 
@@ -335,7 +337,6 @@ function saveWinner(data, roomID) {
       if (err){
         console.log("errr",err);
       }else{
-        console.log(pl_data);
         console.log(" You " + "("+ pl_data.name +")" + " are the" + " WINNER " + pl_data.score);
       }
     });
@@ -368,6 +369,11 @@ function saveLooser(data, roomID) {
       }
     });
   }
+  rooms[roomID].nbPlayers_alive -= 1;
+  /*if (rooms[roomID].nbPlayers_alive) {
+
+  }*/
+  console.log(rooms[roomID].nbPlayers_alive);
 }
 
 // - Relance une partie
