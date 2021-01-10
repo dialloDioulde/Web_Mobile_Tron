@@ -156,6 +156,14 @@ body{
   border-right: 1px solid black;
 }
 
+.roomName{
+  cursor: pointer;
+}
+.roomName:hover{
+  color: #000066;
+  text-decoration: underline;
+}
+
 /***************************
 *          LOGIN           *
 ***************************/

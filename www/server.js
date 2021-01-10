@@ -1,33 +1,34 @@
 const io = require('socket.io')();
 
-var rooms = [];
-var clients = [];
+var rooms = [];     // tableau des différentes parties en cours
+var clients = [];   // tableau des clients connectés au serveur
 
+// - Classe représentant une partie
 class Game {
   constructor(name, nbMinPlayers){
-    this.name = name,
-    this.size = {width: 100, height: 100},
-    this.players = [],
-    this.motos_available = ["bleu", "orange", "rouge", "vert"],
-    this.moto_size = {w: 1, l: 4},
-    this.step = 4,
-    this.path_length = 100,
-    this.initial_positions = [
+    this.name = name,                                           // nom de la partie (identifiant)
+    this.size = {width: 100, height: 100},                      // taille du canvas virtuelle pour le serveur
+    this.players = [],                                          // tableau des joueurs de la partie
+    this.motos_available = ["bleu", "orange", "rouge", "vert"], // tableau des motos disponibles de la partie
+    this.moto_size = {w: 1, l: 4},                              // taille des motos
+    this.step = 4,                                              // pas de déplacement des motos
+    this.path_length = 100,                                     // longueur maximale de la trace des motos
+    this.initial_positions = [                                  // tableau des positions initiales des motos
       {x: 50, y: 4},
       {x: 50, y: 96},
       {x: 4, y: 50},
       {x: 96, y: 50}
     ],
-    this.initial_paths = [
+    this.initial_paths = [                                      // tableau des valeures initiales des traces des motos
       [{x: 50, y: 4}],
       [{x: 50, y: 96}],
       [{x: 4, y: 50}],
       [{x: 96, y: 50}]
     ],
-    this.initial_directions = ["bottom", "top", "right", "left"],
-    this.playing = false,
-    this.nbPlayers_alive = 0,
-    this.nbMinPlayers = nbMinPlayers
+    this.initial_directions = ["bottom", "top", "right", "left"], // directions initiales des motos
+    this.playing = false,                                         // statut de la partie
+    this.nbPlayers_alive = 0,                                     // nombre de joueur en vie
+    this.nbMinPlayers = nbMinPlayers                              // nombre minimal pour jouer
   }
 };
 
@@ -47,7 +48,7 @@ db.once('open', () => {
 });
 //************* Fin : Connexion à MongoDB  ***************************************************************************//
 
-
+// - Récupère la connexion d'un client
 io.on('connection', socket => {
   console.log("New connection:", socket.id);
   clients.push(socket);
@@ -101,6 +102,7 @@ io.on('connection', socket => {
   });
 });
 
+// - Créer une nouvelle partie dans le tableau rooms[]
 function createGame(name, nbJoueurs, callback) {
   for (var i = 0; i < rooms.length; i++) {
     if (rooms[i].name == name) {
@@ -114,10 +116,12 @@ function createGame(name, nbJoueurs, callback) {
   return callback("", newGame, rooms.indexOf(newGame));
 }
 
+// - Retourne les données de la partie sélectionner
 function selectRoom(roomID, callback) {
   return callback(rooms[roomID]);
 }
 
+// - Créer, initialise et ajoute un nouveau joueur
 function newPlayer(joueur, roomID, callback) {
   for (var i = 0; i < rooms[roomID].players.length; i++) {
     if (rooms[roomID].players[i].pseudo == joueur.pseudo) {
@@ -175,6 +179,7 @@ function newPlayer(joueur, roomID, callback) {
   io.to(rooms[roomID].name).emit('newPlayer', rooms[roomID]);
 }
 
+// - Attend le bon nombre de joueur pour lancer la partie
 function init(roomID, callback) {
   if (rooms[roomID].players.length < rooms[roomID].nbMinPlayers) {
     return callback("waitOther");
@@ -191,12 +196,14 @@ function init(roomID, callback) {
   }
 }
 
+// - Normalise les positions du joueur
 function normalizePlayer(position, scale, roomID) {
   var x = parseFloat(((position.x/scale) * rooms[roomID].size.width).toFixed(2));
   var y = parseFloat(((position.y/scale) * rooms[roomID].size.height).toFixed(2));
   return {x: x, y: y};
 }
 
+// - Met à jour la position du joueur
 function move(player, roomID, scale) {
   var playerID = player.id;
   var posNormalize = normalizePlayer(player.pos, scale, roomID);
@@ -217,6 +224,7 @@ function move(player, roomID, scale) {
   io.to(rooms[roomID].name).emit('update', rooms[roomID]);
 }
 
+// - Met à jour la position du joueur lors d'un changment de direction
 function newDir(player, roomID, direction, scale) {
   var playerID = player.id;
   var posNormalize = normalizePlayer(player.pos, scale, roomID);
@@ -245,6 +253,7 @@ function newDir(player, roomID, direction, scale) {
   io.to(rooms[roomID].name).emit('update', rooms[roomID]);
 }
 
+// - Vérifie si le joueur rentre en collision
 function checkCollision(roomID, playerID) {
   var myPos = Object.assign({}, rooms[roomID].players[playerID].pos);
 
@@ -317,6 +326,7 @@ function checkCollision(roomID, playerID) {
   }
 }
 
+// - Enregistre les données du gagnant
 function saveWinner(data, roomID) {
   rooms[roomID].playing = false;
 
@@ -347,6 +357,7 @@ function saveWinner(data, roomID) {
   io.to(rooms[roomID].name).emit('displayRes', rooms[roomID]);
 }
 
+// - Enregistre les données des perdants
 function saveLooser(data, roomID) {
   if(data.status === "dead"){
     Player.findOneAndUpdate({name: data.pseudo}, {status: "dead", score: data.score}, function(err, pl_data){
@@ -357,21 +368,14 @@ function saveLooser(data, roomID) {
       }
     });
   }
-
-  /*for (var i = 0; i < rooms[roomID].players.length; i++) {
-    if (rooms[roomID].players[i].id == data.id) {
-      rooms[roomID].players[i].status = data.status;
-      rooms[roomID].players[i].score = data.score;
-      rooms[roomID].players[i].lose = data.lose;
-    }
-  }*/
 }
 
+// - Relance une partie
 function relaunch(player, roomID, callback) {
   for (var i = 0; i < rooms[roomID].players.length; i++) {
     if (rooms[roomID].players[i].id == player.id) {
-      rooms[roomID].players[i].pos = rooms[roomID].initial_positions[i];
-      rooms[roomID].players[i].path = rooms[roomID].initial_paths[i];
+      rooms[roomID].players[i].pos = Object.assign({}, rooms[roomID].initial_positions[i]);
+      rooms[roomID].players[i].path = rooms[roomID].initial_paths[i].slice();
       rooms[roomID].players[i].dir = rooms[roomID].initial_directions[i];
       rooms[roomID].players[i].status = "ready";
       rooms[roomID].nbPlayers_alive += 1;

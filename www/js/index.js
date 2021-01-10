@@ -17,44 +17,34 @@
  * under the License.
  */
 
-// Wait for the deviceready event before using any of Cordova's device APIs.
-// See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
-/*document.addEventListener('deviceready', onDeviceReady, false);
-
-function onDeviceReady() {
-    // Cordova is now initialized. Have fun!
-
-    console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
-    document.getElementById('deviceready').classList.add('ready');
-}*/
 
 /** Variables globales **/
-const FRAME_RATE = 10;
+const FRAME_RATE = 500; // 0.5 sec
 const CANVAS_SIZE = Math.min(innerWidth, innerHeight) - 20;
 const COLORS = {bleu: "#1A237E", orange: "#FF9800", rouge: "#D50000", vert: "#2E7D32"};
-//const MOTO_SIZE = {w: 0, l: 0};
 
-var client;
-var joueur = {
-  id: null,
-  pseudo: "",
-  moto: 0,
-  color: "",
-  pos: null,
-  dir: "",
-  path: [],
-  status: "ready",
-  score: 0,
-  win: 0,
-  lose: 0
+/** Variables de jeu **/
+var client;         // variable qui représente la connexion avec le serveur
+var joueur = {      // données du joueur :
+  id: null,         // - identifiant auprès du serveur (id socket)
+  pseudo: "",       // - pseudo du joueur
+  moto: 0,          // - numéro de la moto
+  color: "",        // - couleur de la moto
+  pos: null,        // - position de la moto dans le canvas (x,y) en pixel
+  dir: "",          // - direction courante de la moto (top, left, bottom ou right)
+  path: [],         // - tableau des 100 dernières positions de la moto
+  status: "ready",  // - statut du joueur (ready, waiting, dead, ou winner)
+  score: 0,         // - score du joueur
+  win: 0,           // - nombre de victoire
+  lose: 0           // - nombre de défaite
 };
-var gameId;
-var motos_available = [];
-var motos_size = {w: 0, l: 0};
-var slide_index;
-var timerId;
-var gameLoopId;
-var canvas_ctx;
+var gameId;                     // identifiant de la partie
+var motos_available = [];       // tableau des motos disponibles
+var motos_size = {w: 0, l: 0};  // taille de la moto
+var slide_index;                // entier qui permet la sélection de la moto
+var timerId;                    // identifiant pour le timer
+var gameLoopId;                 // identifiant de la boucle de jeu
+var canvas_ctx;                 // contexte du canvas
 
 
 /***************************************
@@ -74,9 +64,11 @@ window.onload = function() {
 
 }
 
+// - Lance la connexion au serveur lorsque que le client est prêt
 function onDeviceReady() {
   console.log(device.platform);
 
+  //***************** mobile ********************//
   if (device.isVirtual || device.platform != "browser") {
     console.log("emulateur");
     client = io.connect('http://10.0.2.2:3030/');
@@ -94,11 +86,13 @@ function onDeviceReady() {
       client.emit('changeDir', joueur.id, 'right');
     });
   }
+  //***************** ordinateur ********************//
   else {
     client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     document.getElementById("fleches").style.display = "none";
   }
 
+  // - reçoit son identifiant de socket dès sa connexion avec le serveur
   client.on('welcome', function(socketId, rooms) {
     joueur.id = socketId;
     if (rooms.length > 0) {
@@ -108,19 +102,30 @@ function onDeviceReady() {
   });
 }
 
+// - affiche la div html de la création d'une partie
 function createGame() {
   document.querySelector('#welcomeDiv').style.display = "none";
   document.querySelector('#createGameDiv').style.display = "block";
 }
 
+// - affiche la div html de sélection d'une partie
+function displayGames() {
+  document.querySelector('#welcomeDiv').style.display = "none";
+  document.querySelector('#selectGameDiv').style.display = "block";
+}
+
+// - créer la div html de sélection d'une partie
 function createGameSelector(rooms) {
   let table = document.querySelector('.game_table');
 
   for (var i = 0; i < rooms.length; i++) {
-    table.innerHTML += "<tr> <td>"+(i+1)+"</td> <td onclick='selectRoom()'>"+rooms[i].name+"</td> <td>"+rooms[i].motos_available.length+"</td> </tr>";
+    if (rooms[i].motos_available.length > 0) {
+      table.innerHTML += "<tr> <td>"+(i+1)+"</td> <td class='roomName' onclick='selectRoom()'>"+rooms[i].name+"</td> <td>"+rooms[i].motos_available.length+"</td> </tr>";
+    }
   }
 }
 
+// - permet de rejoindre la partie sélectionner
 function selectRoom() {
   gameId = event.target.previousElementSibling.textContent-1;
   client.emit('selectRoom', gameId, function(room) {
@@ -136,11 +141,7 @@ function selectRoom() {
   });
 }
 
-function displayGames() {
-  document.querySelector('#welcomeDiv').style.display = "none";
-  document.querySelector('#selectGameDiv').style.display = "block";
-}
-
+// - permet la création d'une partie
 document.querySelector('#formGame').addEventListener('submit', function(e) {
   event.preventDefault();
   let nameGame = document.createGame.children.name.value;
@@ -163,12 +164,12 @@ document.querySelector('#formGame').addEventListener('submit', function(e) {
       document.querySelector('#loginDiv').style.display = "block";
     }
   });
-})
+});
+
 /*******************************
 *             LOGIN            *
 *******************************/
-
-// - Ajoute dans le document HTML les éléments des motos disponibles
+// - Créer la div html de sélection des motos
 function createMotoSelector(motos) {
   motos_available = motos
   let divSelector = document.querySelector('#motoSelector');
@@ -279,6 +280,7 @@ function initGame(data) {
   document.querySelector('.overlay').style.display = "none";
   client.off('welcome');
 
+  // initialise les variables du joueur (position, direction, path)
   motos_size = scaleMotoSize(data.moto_size, data.size);
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].id == joueur.id) {
@@ -290,7 +292,6 @@ function initGame(data) {
 
   createPlayground();
   client.on('newPlayer', drawMoto);
-  //drawMoto(data);
 
   var boxDialog = document.createElement('dialog');
   boxDialog.id = 'info';
@@ -298,6 +299,7 @@ function initGame(data) {
   boxDialog.setAttribute("open", "open");
   boxDialog.appendChild(text);
   document.querySelector('#game').appendChild(boxDialog);
+  // - envoie au serveur que l'on est prêt à jouer
   client.emit('ready', gameId, function(str) {
     if (str == "waitOther") {
       document.querySelector('#info').innerHTML = "En attente d'autres joueur";
@@ -308,7 +310,6 @@ function initGame(data) {
   });
 
   client.on('init', launchGame);
-  //client.on('finish', finish);
 }
 
 // - Créer l'aire de jeu avec les bonnes dimensions
@@ -332,6 +333,7 @@ function createPlayground() {
   canvas_ctx = canvas.getContext("2d");
 }
 
+// - Dessine les motos dans le canvas
 function drawMoto(data) {
   for (var i = 0; i < data.players.length; i++) {
     if (data.players[i].status != "waiting") {
@@ -347,12 +349,14 @@ function drawMoto(data) {
   }
 }
 
+// - Adapte la taille de la moto avec la taille du canvas
 function scaleMotoSize(motoSize, scale) {
   let w = parseFloat(((motoSize.w / scale.width) * CANVAS_SIZE).toFixed(2));
   let l = parseFloat(((motoSize.l / scale.height) * CANVAS_SIZE).toFixed(2));
   return {w: w, l: l};
 }
 
+// - Repositionne la moto en fcontion de la taille du canvas
 function scalePos(player, scale) {
   var x, y;
   x = parseFloat(((player.pos.x / scale.width) * CANVAS_SIZE).toFixed(2));
@@ -361,6 +365,7 @@ function scalePos(player, scale) {
   return {x: x, y: y};
 }
 
+// - Repositionne les positions de la trace de la moto en fonction de la taille du canvas
 function scalePath(path, scale) {
   var normalizePath = [];
   for (var i = 0; i < path.length; i++) {
@@ -393,7 +398,7 @@ function launchGame(gameState){
 /*******************************
 *              JEU             *
 *******************************/
-
+// - Boule de jeu
 function play() {
   console.log("play");
   document.querySelector('#info').style.display = "none";
@@ -418,12 +423,13 @@ function play() {
       joueur.score += 10;
       client.emit('updatePos', joueur, gameId, CANVAS_SIZE);
     }
-  }, 500);
+  }, FRAME_RATE);
 
   client.on('update', update);
   client.on('collide', playerDead);
 }
 
+// - Met à jour le canvas
 function update(gameState) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
   drawMoto(gameState);
@@ -450,6 +456,7 @@ function update(gameState) {
   }
 }
 
+// - Focntion appelée à chaque fois qu'un joueur meurt (collision)
 function playerDead(gameState, id) {
   console.log(id);
   if (id == joueur.id) {
@@ -471,6 +478,7 @@ function playerDead(gameState, id) {
   }
 }
 
+// - Gère l'appuie sur les flèches directionnelles du clavier
 function keydown(event){
   switch(event.keyCode){
     case 37:
@@ -523,6 +531,7 @@ function keydown(event){
   }
 }
 
+// - Fin d'une partie
 function finish() {
   clearInterval(gameLoopId);
 
@@ -542,6 +551,7 @@ function finish() {
   client.on('displayRes', displayResData);
 }
 
+// - Affiche les résultats de la partie
 function displayResData(room) {
   console.log(room);
 
@@ -610,6 +620,7 @@ function displayResData(room) {
   document.querySelector('#info').appendChild(btnReplay);
 }
 
+// - Relance une partie
 function replay() {
   client.off('displayRes');
   document.querySelector('#info').innerHTML = "";
@@ -643,6 +654,7 @@ function replay() {
   });
 }
 
+// - Dessine les motos de la nouvelle partie
 function drawReadyMoto(data) {
   canvas_ctx.clearRect(0,0, CANVAS_SIZE, CANVAS_SIZE);
   for (var i = 0; i < data.players.length; i++) {
