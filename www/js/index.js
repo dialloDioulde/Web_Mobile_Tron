@@ -70,25 +70,54 @@ function onDeviceReady() {
 
   //***************** mobile ********************//
   if (device.isVirtual || device.platform != "browser") {
+//      client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     console.log("emulateur");
-    client = io.connect('http://192.168.56.1:3000');
+    client = io.connect('http://10.0.2.2:3000/');
 
     document.getElementById('north').addEventListener('click', function(e) {
-      client.emit('changeDir', joueur.id, 'top');
+        if (joueur.dir == "left") {
+            joueur.pos.x -= (motos_size.l/2);
+        }
+        if (joueur.dir == "right") {
+            joueur.pos.x += (motos_size.l/2);
+        }
+            joueur.pos.y -= (motos_size.l/2);
+        client.emit('changeDir', joueur, gameId, 'top', CANVAS_SIZE);
     });
     document.getElementById('south').addEventListener('click', function(e) {
-      client.emit('changeDir', joueur.id, 'bottom');
+        if (joueur.dir == "left") {
+           joueur.pos.x -= (motos_size.l/2);
+        }
+        if (joueur.dir == "right") {
+            joueur.pos.x += (motos_size.l/2);
+          }
+        joueur.pos.y += (motos_size.l/2);
+        client.emit('changeDir', joueur, gameId, 'bottom', CANVAS_SIZE);
     });
     document.getElementById('west').addEventListener('click', function(e) {
-      client.emit('changeDir', joueur.id, 'left');
+        if (joueur.dir == "top") {
+            joueur.pos.y -= (motos_size.l/2);
+        }
+        if (joueur.dir == "bottom") {
+            joueur.pos.y += (motos_size.l/2);
+        }
+        joueur.pos.x -= (motos_size.l/2);
+        client.emit('changeDir', joueur, gameId, 'left', CANVAS_SIZE);
     });
     document.getElementById('east').addEventListener('click', function(e) {
-      client.emit('changeDir', joueur.id, 'right');
+        if (joueur.dir == "top") {
+            joueur.pos.y -= (motos_size.l/2);
+        }
+        if (joueur.dir == "bottom") {
+            joueur.pos.y += (motos_size.l/2);
+        }
+        joueur.pos.x += (motos_size.l/2);
+        client.emit('changeDir', joueur, gameId, 'right', CANVAS_SIZE);
     });
   }
   //***************** ordinateur ********************//
   else {
-    client = io('http://192.168.56.1:3000', {transports: ['websocket', 'polling', 'flashsocket']});
+    client = io('http://192.168.0.29:3000', {transports: ['websocket', 'polling', 'flashsocket']});
     document.getElementById("fleches").style.display = "none";
   }
 
@@ -474,10 +503,6 @@ function playerDead(gameState, id) {
       client.emit('looserData', joueur, gameId);
     }
   }
-  /*if (gameState.nbPlayers_alive == 1) {
-    console.log(gameState);
-    finish();
-  }*/
 }
 
 // - Gère l'appuie sur les flèches directionnelles du clavier

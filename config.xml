@@ -1,8 +1,7 @@
-
 <?xml version='1.0' encoding='utf-8'?>
 
 <widget id="io.cordova.hellocordova" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Tron</name>
+    <name>HelloCordova</name>
     <description>
         A sample Apache Cordova application that responds to the deviceready event.
     </description>
@@ -22,6 +21,9 @@
         <access origin="*" />
         <allow-navigation href="*" />
     </platform>
+    <plugin name="cordova-plugin-whitelist" spec="1.3.3" />
+    <plugin name="cordova-plugin-statusbar" spec="2.4.2" />
+    <plugin name="cordova-plugin-device" spec="2.0.2" />
     <platform name="ios">
         <allow-intent href="itms:*" />
         <allow-intent href="itms-apps:*" />
